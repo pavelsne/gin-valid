@@ -49,7 +49,7 @@ func main() {
 	)(router)
 
 	server := http.Server{
-		Addr:    "3030",
+		Addr:    ":3033",
 		Handler: handler,
 	}
 
