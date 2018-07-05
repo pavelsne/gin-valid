@@ -25,5 +25,9 @@ _cgo_export.*
 *.iml
 .idea
 
+# VS Code
+*.code-workspace
+debug
+
 # Temp
 *~
