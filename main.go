@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
@@ -28,12 +29,19 @@ func root(w http.ResponseWriter, r *http.Request) {
 
 func validate(w http.ResponseWriter, r *http.Request) {
 	repo := mux.Vars(r)["repo"]
-	fmt.Fprintf(w, "validate repo '%s'", repo)
+	user := mux.Vars(r)["user"]
+	fmt.Fprintf(w, "validate repo '%s/%s'", repo, user)
+
+	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", repo, user))
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] Could not access '%s/%s': '%s'\n", repo, user, err.Error())
+		return
+	}
 }
 
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
-	r.HandleFunc("/validate/{repo}", validate)
+	r.HandleFunc("/validate/{repo}/{user}", validate)
 }
 
 func main() {
