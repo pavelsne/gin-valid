@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -45,6 +46,17 @@ func registerRoutes(r *mux.Router) {
 }
 
 func main() {
+
+	// Check gin installed and available
+	cmd := exec.Command("gin", "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "\n[Error] starting gin client '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using %s", out.String())
+
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
