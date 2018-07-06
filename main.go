@@ -52,10 +52,20 @@ func main() {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] starting gin client '%s'\n", err.Error())
+		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
 	}
 	fmt.Fprintf(os.Stdout, "[Warmup] using %s", out.String())
+
+	// Check npm installed and available
+	cmd = exec.Command("npm", "--version")
+	out.Reset()
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "\n[Error] checking npm '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", out.String())
 
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
