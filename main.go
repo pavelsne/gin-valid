@@ -67,6 +67,16 @@ func main() {
 	}
 	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", out.String())
 
+	// Check bids-validator is installed
+	cmd = exec.Command("npm", "show", "bids-validator", "version")
+	out.Reset()
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using bids-validator v%s", out.String())
+
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
