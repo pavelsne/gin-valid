@@ -40,7 +40,7 @@ func validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpdir, err := ioutil.TempDir("/home/msonntag/Chaos/DL/val", "validator")
+	tmpdir, err := ioutil.TempDir("/home/msonntag/Chaos/DL/val", "bidsval_")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] creating temporary directory: '%s'\n", err.Error())
 		return
@@ -48,7 +48,7 @@ func validate(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Directory created: %s\n", tmpdir)
 
 	// enable cleanup once tried and tested
-	// defer os.RemoveAll(tmpdir)
+	defer os.RemoveAll(tmpdir)
 
 	cmd = exec.Command("gin", "get", fmt.Sprintf("%s/%s", user, repo))
 	var out bytes.Buffer
@@ -102,7 +102,7 @@ func main() {
 	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", out.String())
 
 	// Check bids-validator is installed
-	cmd = exec.Command("npm", "show", "bids-validator", "version")
+	cmd = exec.Command("/home/msonntag/node_modules/.bin/bids-validator", "--version")
 	out.Reset()
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
