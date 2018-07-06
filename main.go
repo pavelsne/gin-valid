@@ -45,7 +45,20 @@ func validate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "[Error] creating temporary directory: '%s'\n", err.Error())
 		return
 	}
-	fmt.Fprintf(w, "Directory created: %s", tmpdir)
+	fmt.Fprintf(w, "Directory created: %s\n", tmpdir)
+
+	// enable cleanup once tried and tested
+	// defer os.RemoveAll(tmpdir)
+
+	cmd = exec.Command("gin", "get", fmt.Sprintf("%s/%s", repo, user))
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Dir = tmpdir
+	if err = cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] running gin get: '%s'\n", err.Error())
+		return
+	}
+	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
 }
 
 func registerRoutes(r *mux.Router) {
