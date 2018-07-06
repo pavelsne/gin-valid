@@ -28,6 +28,7 @@ _cgo_export.*
 # VS Code
 *.code-workspace
 debug
+.vscode
 
 # Temp
 *~
