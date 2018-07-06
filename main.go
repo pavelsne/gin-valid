@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -31,13 +32,20 @@ func root(w http.ResponseWriter, r *http.Request) {
 func validate(w http.ResponseWriter, r *http.Request) {
 	repo := mux.Vars(r)["repo"]
 	user := mux.Vars(r)["user"]
-	fmt.Fprintf(w, "validate repo '%s/%s'", repo, user)
+	fmt.Fprintf(w, "validate repo '%s/%s'\n", repo, user)
 
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", repo, user))
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] Could not access '%s/%s': '%s'\n", repo, user, err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", repo, user, err.Error())
 		return
 	}
+
+	tmpdir, err := ioutil.TempDir("/home/msonntag/Chaos/DL/val", "validator")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] creating temporary directory: '%s'\n", err.Error())
+		return
+	}
+	fmt.Fprintf(w, "Directory created: %s", tmpdir)
 }
 
 func registerRoutes(r *mux.Router) {
