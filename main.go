@@ -59,6 +59,18 @@ func validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
+
+	cmd = exec.Command("/home/msonntag/node_modules/.bin/bids-validator", fmt.Sprintf("%s/%s", tmpdir, repo))
+	out.Reset()
+	cmd.Stdout = &out
+	var serr bytes.Buffer
+	cmd.Stderr = &serr
+	cmd.Dir = tmpdir
+	if err = cmd.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'", fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
+		return
+	}
+	fmt.Fprintf(w, "validation successful: %s\n", out.String())
 }
 
 func registerRoutes(r *mux.Router) {
