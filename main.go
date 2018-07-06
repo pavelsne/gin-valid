@@ -30,13 +30,13 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func validate(w http.ResponseWriter, r *http.Request) {
-	repo := mux.Vars(r)["repo"]
 	user := mux.Vars(r)["user"]
-	fmt.Fprintf(w, "validate repo '%s/%s'\n", repo, user)
+	repo := mux.Vars(r)["repo"]
+	fmt.Fprintf(w, "validate repo '%s/%s'\n", user, repo)
 
-	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", repo, user))
+	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", repo, user, err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
 		return
 	}
 
@@ -50,7 +50,7 @@ func validate(w http.ResponseWriter, r *http.Request) {
 	// enable cleanup once tried and tested
 	// defer os.RemoveAll(tmpdir)
 
-	cmd = exec.Command("gin", "get", fmt.Sprintf("%s/%s", repo, user))
+	cmd = exec.Command("gin", "get", fmt.Sprintf("%s/%s", user, repo))
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Dir = tmpdir
@@ -63,7 +63,7 @@ func validate(w http.ResponseWriter, r *http.Request) {
 
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
-	r.HandleFunc("/validate/{repo}/{user}", validate)
+	r.HandleFunc("/validate/{user}/{repo}", validate)
 }
 
 func main() {
