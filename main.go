@@ -26,8 +26,14 @@ func root(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ginvalid running")
 }
 
+func validate(w http.ResponseWriter, r *http.Request) {
+	repo := mux.Vars(r)["repo"]
+	fmt.Fprintf(w, "validate repo '%s'", repo)
+}
+
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
+	r.HandleFunc("/validate/{repo}", validate)
 }
 
 func main() {
