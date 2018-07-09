@@ -11,6 +11,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/mpsonntag/gin-valid/valutils"
 )
 
 const usage = `Server validating BIDS files
@@ -81,36 +82,32 @@ func registerRoutes(r *mux.Router) {
 
 func main() {
 
-	// Check gin installed and available
-	cmd := exec.Command("gin", "--version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
+	// Check gin is installed and available
+	outstr, err := valutils.AppVersionCheck("gin")
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using %s", out.String())
 
-	// Check npm installed and available
-	cmd = exec.Command("npm", "--version")
-	out.Reset()
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
+	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
+
+	// Check npm is installed and available
+	outstr, err = valutils.AppVersionCheck("npm")
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking npm '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", out.String())
+	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", outstr)
 
 	// Check bids-validator is installed
-	cmd = exec.Command("/home/msonntag/node_modules/.bin/bids-validator", "--version")
-	out.Reset()
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
+	outstr, err = valutils.AppVersionCheck("/home/msonntag/node_modules/.bin/bids-validator")
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using bids-validator v%s", out.String())
+	fmt.Fprintf(os.Stdout, "[Warmup] using bids-validator v%s", outstr)
 
+	// Parse commandline arguments
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
