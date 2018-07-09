@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
+	"github.com/mpsonntag/gin-valid/resources"
 )
 
 // Validate temporarily clones a provided repository from
@@ -51,6 +52,9 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
 
+	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.svg")
+	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.json")
+
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	latestPath := filepath.Join(srvconfig.Dir.Result, user, repo, "latest")
@@ -73,10 +77,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintln(w, "validation successful")
 
-	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.json")
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	err = ioutil.WriteFile(outFile, out.Bytes(), os.ModePerm)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] Was not able to write output file for '%s/%s'\n", user, repo)
+	}
+	err = ioutil.WriteFile(outBadge, []byte(resources.BidsSuccess), os.ModePerm)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] Was not able to write output badge for '%s/%s'\n", user, repo)
 	}
 }
