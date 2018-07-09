@@ -51,7 +51,7 @@ func main() {
 	}
 	fmt.Fprintf(os.Stdout, "[Warmup] using temp directory: '%s'\n", fi.Name())
 
-	if fi, err = os.Stat(srvconfig.Dir.Permanent); err != nil {
+	if fi, err = os.Stat(srvconfig.Dir.Result); err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] checking results directory %s\n", err.Error())
 		os.Exit(-1)
 	} else if !fi.IsDir() {
