@@ -61,6 +61,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	err = os.MkdirAll(latestPath, os.ModePerm)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] creating latest build folder '%s/%s': %s", user, repo, err.Error())
+		// Think about whether we should do something at this point
+		return
 	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
@@ -73,6 +75,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	if err = cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'",
 			fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
+		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[Error] Was not able to write output badge for '%s/%s'\n", user, repo)
+		}
 		return
 	}
 	fmt.Fprintln(w, "validation successful")
