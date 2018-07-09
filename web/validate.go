@@ -14,6 +14,21 @@ import (
 	"github.com/mpsonntag/gin-valid/resources"
 )
 
+// BidsMessages contains Errors, Warnings and Ignored messages.
+// Currently its just the number of individual messages
+// we are interested in. If this changes, the messages
+// will be expanded into proper structs of their own.
+type BidsMessages struct {
+	Errors   []interface{} `json:"errors"`
+	Warnings []interface{} `json:"warnings"`
+	Ignored  []interface{} `json:"ignored"`
+}
+
+// BidsRoot contains only the root issues element.
+type BidsRoot struct {
+	Issues BidsMessages `json:"issues"`
+}
+
 // Validate temporarily clones a provided repository from
 // a gin server and checks whether the content of the
 // repository is a valid BIDS dataset.
