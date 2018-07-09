@@ -39,13 +39,33 @@ func main() {
 
 	srvconfig := config.Read()
 
+	// Check whether the required directories are available and accessible
+	var fi os.FileInfo
+	var err error
+	if fi, err = os.Stat(srvconfig.Dir.Temp); err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] checking temp directory %s\n", err.Error())
+		os.Exit(-1)
+	} else if !fi.IsDir() {
+		fmt.Fprintf(os.Stderr, "[Error] invalid temp directory '%s' \n", fi.Name())
+		os.Exit(-1)
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using temp directory: '%s'\n", fi.Name())
+
+	if fi, err = os.Stat(srvconfig.Dir.Permanent); err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] checking results directory %s\n", err.Error())
+		os.Exit(-1)
+	} else if !fi.IsDir() {
+		fmt.Fprintf(os.Stderr, "[Error] invalid results directory '%s' \n", fi.Name())
+		os.Exit(-1)
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using results directory '%s'\n", fi.Name())
+
 	// Check gin is installed and available
 	outstr, err := valutils.AppVersionCheck(srvconfig.Exec.Gin)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-
 	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
 
 	// Check npm is installed and available
