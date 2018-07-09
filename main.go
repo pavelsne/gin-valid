@@ -33,6 +33,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
 	r.HandleFunc("/validate/{user}/{repo}", web.Validate)
+	r.HandleFunc("/status/{user}/{repo}", web.Status)
 }
 
 func main() {
