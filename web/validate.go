@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
@@ -49,6 +50,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
+
+	// Create results folder if necessary
+	latestPath := filepath.Join(srvconfig.Dir.Result, user, repo, "latest")
+	err = os.MkdirAll(latestPath, os.ModePerm)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] creating latest build folder '%s/%s': %s", user, repo, err.Error())
+	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
 	cmd = exec.Command(srvconfig.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
