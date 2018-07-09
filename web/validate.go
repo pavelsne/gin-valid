@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -92,19 +93,42 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[Error] Was not able to write output badge for '%s/%s'\n", user, repo)
+			fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
 		}
 		return
 	}
 	fmt.Fprintln(w, "validation successful")
 
+	// We need this for both the writing of the result and the badge
+	output := out.Bytes()
+
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	err = ioutil.WriteFile(outFile, out.Bytes(), os.ModePerm)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] Was not able to write output file for '%s/%s'\n", user, repo)
+		fmt.Fprintf(os.Stderr, "[Error] writing output file for '%s/%s'\n", user, repo)
 	}
-	err = ioutil.WriteFile(outBadge, []byte(resources.BidsSuccess), os.ModePerm)
+
+	// Write proper badge according to result
+	content := resources.BidsSuccess
+	var parseBIDS BidsRoot
+	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] Was not able to write output badge for '%s/%s'\n", user, repo)
+		fmt.Fprintf(os.Stderr, "[Error] unmarshalling json: %s", err.Error())
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Errors) > 0 {
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Warnings) > 0 {
+		content = resources.BidsWarning
+	}
+
+	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
+	}
+	fmt.Fprintf(os.Stdout, "[Info] done validating repo '%s/%s'\n", user, repo)
+
+	_, err = w.Write([]byte(content))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] returning badge %s", err.Error())
 	}
 }
