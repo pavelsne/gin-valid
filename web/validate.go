@@ -52,6 +52,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
 
 	// Create results folder if necessary
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	latestPath := filepath.Join(srvconfig.Dir.Result, user, repo, "latest")
 	err = os.MkdirAll(latestPath, os.ModePerm)
 	if err != nil {
@@ -66,8 +67,16 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'", fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
+		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'",
+			fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
 		return
 	}
-	fmt.Fprintf(w, "validation successful: \n%s\n", out.String())
+	fmt.Fprintln(w, "validation successful")
+
+	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.json")
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	err = ioutil.WriteFile(outFile, out.Bytes(), os.ModePerm)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] Was not able to write output file for '%s/%s'\n", user, repo)
+	}
 }
