@@ -39,7 +39,6 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
-	fmt.Fprintf(w, "validate repo '%s/%s'\n", user, repo)
 	fmt.Fprintf(os.Stdout, "[Info] validating repo '%s/%s'\n", user, repo)
 
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
@@ -53,7 +52,6 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "[Error] creating temporary directory: '%s'\n", err.Error())
 		return
 	}
-	fmt.Fprintf(w, "Directory created: %s\n", tmpdir)
 
 	// enable cleanup once tried and tested
 	defer os.RemoveAll(tmpdir)
@@ -66,7 +64,6 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "[Error] running gin get: '%s'\n", err.Error())
 		return
 	}
-	fmt.Fprintf(w, "running in %s, gin get: %s\n", cmd.Dir, out.String())
 
 	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.svg")
 	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.json")
@@ -91,13 +88,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	if err = cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'",
 			fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
+
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
 		}
 		return
 	}
-	fmt.Fprintln(w, "validation successful")
 
 	// We need this for both the writing of the result and the badge
 	output := out.Bytes()
@@ -125,7 +122,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
 	}
-	fmt.Fprintf(os.Stdout, "[Info] done validating repo '%s/%s'\n", user, repo)
+
+	fmt.Fprintf(os.Stdout, "[Info] finished validating repo '%s/%s'\n", user, repo)
 
 	_, err = w.Write([]byte(content))
 	if err != nil {
