@@ -17,13 +17,14 @@ import (
 const usage = `Server validating BIDS files
 
 Usage:
-  ginvalid
+  ginvalid [--listen <port>]
   ginvalid -h | --help
   ginvalid --version
 
 Options:
   -h --help           Show this screen.
   --version           Print version.
+  --listen            Port to listen at [default:3033]
   `
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +116,16 @@ func main() {
 	}
 	fmt.Fprintf(os.Stdout, "[Warmup] cli arguments: %v\n", args)
 
+	// Use port if provided.
+	port := ":3033"
+	if valutils.IsValidPort(args["<port>"]) {
+		p := args["<port>"]
+		port = fmt.Sprintf(":%s", p.(string))
+	} else {
+		fmt.Fprintln(os.Stderr, "[Info] could not parse a valid port number, using default")
+	}
+	fmt.Fprintf(os.Stdout, "[Warmup] using port: '%s'\n", port)
+
 	fmt.Fprintln(os.Stdout, "[Warmup] registering routes")
 	router := mux.NewRouter()
 	registerRoutes(router)
@@ -126,7 +137,7 @@ func main() {
 	)(router)
 
 	server := http.Server{
-		Addr:    ":3033",
+		Addr:    port,
 		Handler: handler,
 	}
 
