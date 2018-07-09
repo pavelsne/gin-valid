@@ -11,6 +11,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/mpsonntag/gin-valid/config"
 	"github.com/mpsonntag/gin-valid/valutils"
 )
 
@@ -83,8 +84,10 @@ func registerRoutes(r *mux.Router) {
 
 func main() {
 
+	srvconfig := config.Read()
+
 	// Check gin is installed and available
-	outstr, err := valutils.AppVersionCheck("gin")
+	outstr, err := valutils.AppVersionCheck(srvconfig.Exec.Gin)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
@@ -93,7 +96,7 @@ func main() {
 	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
 
 	// Check npm is installed and available
-	outstr, err = valutils.AppVersionCheck("npm")
+	outstr, err = valutils.AppVersionCheck(srvconfig.Exec.NPM)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking npm '%s'\n", err.Error())
 		os.Exit(-1)
@@ -101,7 +104,7 @@ func main() {
 	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", outstr)
 
 	// Check bids-validator is installed
-	outstr, err = valutils.AppVersionCheck("/home/msonntag/node_modules/.bin/bids-validator")
+	outstr, err = valutils.AppVersionCheck(srvconfig.Exec.BIDS)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
