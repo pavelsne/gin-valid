@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -59,6 +60,13 @@ func Write(fmtstr string, args ...interface{}) {
 	} else {
 		logger.Printf(fmtstr, args...)
 	}
+}
+
+// ShowWrite writes a string to Stdout and passes
+// the arguments on to the log Writer function.
+func ShowWrite(fmtstr string, args ...interface{}) {
+	fmt.Fprintf(os.Stdout, fmtstr, args)
+	Write(fmtstr, args)
 }
 
 // Close trims and closes the log file, errors are ignored.
