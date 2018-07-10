@@ -3,7 +3,6 @@ package config
 // Executables used by the server.
 type Executables struct {
 	Gin  string
-	NPM  string
 	BIDS string
 }
 
@@ -26,7 +25,6 @@ type ServerCfg struct {
 var ginValidDefaultServer = ServerCfg{
 	Executables{
 		Gin:  "gin",
-		NPM:  "npm",
 		BIDS: "/home/msonntag/node_modules/.bin/bids-validator",
 	},
 	Directories{

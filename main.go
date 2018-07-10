@@ -59,14 +59,6 @@ func main() {
 	}
 	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
 
-	// Check npm is installed and available
-	outstr, err = valutils.AppVersionCheck(srvconfig.Exec.NPM)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] checking npm '%s'\n", err.Error())
-		os.Exit(-1)
-	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using npm v%s", outstr)
-
 	// Check bids-validator is installed
 	outstr, err = valutils.AppVersionCheck(srvconfig.Exec.BIDS)
 	if err != nil {
