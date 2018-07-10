@@ -2,15 +2,14 @@ package web
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
+	"github.com/mpsonntag/gin-valid/log"
 	"github.com/mpsonntag/gin-valid/resources"
 )
 
@@ -25,7 +24,7 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsBadge)
 	content, err := ioutil.ReadFile(fp)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] serving '%s/%s' status: %s\n", user, repo, err.Error())
+		log.Write("[Error] serving '%s/%s' status: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable.svg", time.Now(), bytes.NewReader([]byte(resources.BidsUnavailable)))
 		return
 	}

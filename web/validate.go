@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
+	"github.com/mpsonntag/gin-valid/log"
 	"github.com/mpsonntag/gin-valid/resources"
 )
 
@@ -40,7 +41,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
-	fmt.Fprintf(os.Stdout, "[Info] validating repo '%s/%s'\n", user, repo)
+	log.Write("[Info] validating repo '%s/%s'\n", user, repo)
 
 	// TODO add check if a repo is currently being validated. since
 	// the cloning can potentially take quite some time prohibit
@@ -52,7 +53,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
+
+		log.Write("[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
 		http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(),
 			bytes.NewReader([]byte(resources.BidsUnavailable)))
 		return
@@ -60,7 +62,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	tmpdir, err := ioutil.TempDir(srvconfig.Dir.Temp, "bidsval_")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] creating temp gin directory: '%s'\n", err.Error())
+		log.Write("[Error] creating temp gin directory: '%s'\n", err.Error())
 		return
 	}
 
@@ -72,7 +74,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stdout = &out
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] running gin get: '%s'\n", err.Error())
+		log.Write("[Error] running gin get: '%s'\n", err.Error())
 		return
 	}
 
@@ -81,7 +83,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder)
 	err = os.MkdirAll(fp, os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
+		log.Write("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
 		return
 	}
 
@@ -94,12 +96,12 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s/%s): '%s', '%s', '%s'",
+		log.Write("[Error] running bids validation (%s/%s): '%s', '%s', '%s'",
 			tmpdir, repo, err.Error(), serr.String(), out.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[Error] writing results badge for '%s/%s'\n", user, repo)
+			log.Write("[Error] writing results badge for '%s/%s'\n", user, repo)
 		}
 		return
 	}
@@ -111,7 +113,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] writing results file for '%s/%s'\n", user, repo)
+		log.Write("[Error] writing results file for '%s/%s'\n", user, repo)
 	}
 
 	// Write proper badge according to result
@@ -119,7 +121,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] unmarshalling results json: %s", err.Error())
+		log.Write("[Error] unmarshalling results json: %s", err.Error())
 		content = resources.BidsFailure
 	} else if len(parseBIDS.Issues.Errors) > 0 {
 		content = resources.BidsFailure
@@ -129,10 +131,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] writing results badge for '%s/%s'\n", user, repo)
+		log.Write("[Error] writing results badge for '%s/%s'\n", user, repo)
 	}
 
-	fmt.Fprintf(os.Stdout, "[Info] finished validating repo '%s/%s'\n", user, repo)
+	log.Write("[Info] finished validating repo '%s/%s'\n", user, repo)
 
 	http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(), bytes.NewReader([]byte(content)))
 }
