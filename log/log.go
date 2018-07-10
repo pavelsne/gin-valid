@@ -41,7 +41,16 @@ func Init() error {
 		return err
 	}
 
-	logger = log.New(logfile, "", log.Ldate | log.Ltime | log.Lshortfile)
+	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	return nil
+}
+
+// Close trims and closes the log file, errors are ignored.
+func Close() {
+	srvcfg := config.Read()
+
+	trim(logfile, srvcfg.Settings.LogSize)
+
+	_ = logfile.Close()
 }
