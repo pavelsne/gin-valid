@@ -20,15 +20,24 @@ type Denotations struct {
 	ResultsBadge  string
 }
 
+// Settings provide the default server settings.
+type Settings struct {
+	Port string
+}
+
 // ServerCfg holds the config used to setup the gin validation server and
 // the paths to all required executables, temporary and permanent folders.
 type ServerCfg struct {
-	Exec  Executables
-	Dir   Directories
-	Label Denotations
+	Settings Settings
+	Exec     Executables
+	Dir      Directories
+	Label    Denotations
 }
 
 var ginValidDefaultServer = ServerCfg{
+	Settings{
+		Port: "3033",
+	},
 	Executables{
 		Gin:  "gin",
 		BIDS: "/home/msonntag/node_modules/.bin/bids-validator",

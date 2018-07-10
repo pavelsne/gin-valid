@@ -38,21 +38,21 @@ func registerRoutes(r *mux.Router) {
 
 func main() {
 
-	srvconfig := config.Read()
+	srvcfg := config.Read()
 
 	// Check whether the required directories are available and accessible
-	if !valutils.ValidDirectory(srvconfig.Dir.Temp) {
+	if !valutils.ValidDirectory(srvcfg.Dir.Temp) {
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using temp directory: '%s'\n", srvconfig.Dir.Temp)
+	fmt.Fprintf(os.Stdout, "[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
 
-	if !valutils.ValidDirectory(srvconfig.Dir.Result) {
+	if !valutils.ValidDirectory(srvcfg.Dir.Result) {
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using results directory '%s'\n", srvconfig.Dir.Result)
+	fmt.Fprintf(os.Stdout, "[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
 
 	// Check gin is installed and available
-	outstr, err := valutils.AppVersionCheck(srvconfig.Exec.Gin)
+	outstr, err := valutils.AppVersionCheck(srvcfg.Exec.Gin)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
@@ -60,7 +60,7 @@ func main() {
 	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
 
 	// Check bids-validator is installed
-	outstr, err = valutils.AppVersionCheck(srvconfig.Exec.BIDS)
+	outstr, err = valutils.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
@@ -76,7 +76,7 @@ func main() {
 	fmt.Fprintf(os.Stdout, "[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
-	port := ":3033"
+	port := srvcfg.Settings.Port
 	if valutils.IsValidPort(args["<port>"]) {
 		p := args["<port>"]
 		port = fmt.Sprintf(":%s", p.(string))
