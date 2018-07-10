@@ -42,14 +42,30 @@ func Init() error {
 	}
 
 	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.Lshortfile)
+	Write("=== LOGINIT ===")
 
 	return nil
+}
+
+// Write writes a string to the log file if there is an initialized logger.
+// Depending on the number of arguments, Write behaves like Print or Printf,
+// the first argument must always be a string.
+func Write(fmtstr string, args ...interface{}) {
+	if logger == nil {
+		return
+	}
+	if len(args) == 0 {
+		logger.Print(fmtstr)
+	} else {
+		logger.Printf(fmtstr, args...)
+	}
 }
 
 // Close trims and closes the log file, errors are ignored.
 func Close() {
 	srvcfg := config.Read()
 
+	Write("=== LOGEND ===")
 	trim(logfile, srvcfg.Settings.LogSize)
 
 	_ = logfile.Close()
