@@ -65,16 +65,15 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.svg")
-	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, "latest", "results.json")
+	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsBadge)
+	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsFile)
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	latestPath := filepath.Join(srvconfig.Dir.Result, user, repo, "latest")
-	err = os.MkdirAll(latestPath, os.ModePerm)
+	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder)
+	err = os.MkdirAll(fp, os.ModePerm)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] creating latest build folder '%s/%s': %s", user, repo, err.Error())
-		// Think about whether we should do something at this point
 		return
 	}
 
