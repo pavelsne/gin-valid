@@ -10,11 +10,13 @@ type Executables struct {
 type Directories struct {
 	Temp   string
 	Result string
+	Log    string
 }
 
 // Denotations provide any freuquently used file names or other denotations
 // e.g. validation result files, badge or result folder names.
 type Denotations struct {
+	LogFile       string
 	ResultsFolder string
 	ResultsFile   string
 	ResultsBadge  string
@@ -22,7 +24,8 @@ type Denotations struct {
 
 // Settings provide the default server settings.
 type Settings struct {
-	Port string
+	Port    string
+	LogSize int
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
@@ -36,7 +39,8 @@ type ServerCfg struct {
 
 var ginValidDefaultServer = ServerCfg{
 	Settings{
-		Port: "3033",
+		Port:    "3033",
+		LogSize: 1048576,
 	},
 	Executables{
 		Gin:  "gin",
@@ -45,8 +49,10 @@ var ginValidDefaultServer = ServerCfg{
 	Directories{
 		Temp:   "/home/msonntag/Chaos/DL/val",
 		Result: "/home/msonntag/Chaos/DL/valresults",
+		Log:    "/home/msonntag/Chaos/DL/val",
 	},
 	Denotations{
+		LogFile:       "ginvalid.log",
 		ResultsFolder: "latest",
 		ResultsFile:   "results.json",
 		ResultsBadge:  "results.svg",
