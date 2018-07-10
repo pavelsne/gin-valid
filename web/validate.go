@@ -41,6 +41,14 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	repo := mux.Vars(r)["repo"]
 	fmt.Fprintf(os.Stdout, "[Info] validating repo '%s/%s'\n", user, repo)
 
+	// TODO add check if a repo is currently being validated. since
+	// the cloning can potentially take quite some time prohibit
+	// running the same validation at the same time.
+	// could also move this to a mapped go routine and if the same
+	// repo is validated twice, the first occurrence is stopped and
+	// cleaned up while the second starts anew - to make sure its always
+	// the latest state of the repository that is being validated.
+
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
@@ -49,7 +57,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	tmpdir, err := ioutil.TempDir(srvconfig.Dir.Temp, "bidsval_")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] creating temporary directory: '%s'\n", err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] creating temp gin directory: '%s'\n", err.Error())
 		return
 	}
 
@@ -65,19 +73,17 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsBadge)
-	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsFile)
-
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder)
 	err = os.MkdirAll(fp, os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] creating latest build folder '%s/%s': %s", user, repo, err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
 		return
 	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
+	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsBadge)
 	cmd = exec.Command(srvconfig.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
 	out.Reset()
 	cmd.Stdout = &out
@@ -85,12 +91,12 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s): '%s', '%s', '%s'",
-			fmt.Sprintf("%s/%s", tmpdir, repo), err.Error(), serr.String(), out.String())
+		fmt.Fprintf(os.Stderr, "[Error] running bids validation (%s/%s): '%s', '%s', '%s'",
+			tmpdir, repo, err.Error(), serr.String(), out.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
+			fmt.Fprintf(os.Stderr, "[Error] writing results badge for '%s/%s'\n", user, repo)
 		}
 		return
 	}
@@ -99,9 +105,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	output := out.Bytes()
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] writing output file for '%s/%s'\n", user, repo)
+		fmt.Fprintf(os.Stderr, "[Error] writing results file for '%s/%s'\n", user, repo)
 	}
 
 	// Write proper badge according to result
@@ -109,7 +116,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] unmarshalling json: %s", err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] unmarshalling results json: %s", err.Error())
 		content = resources.BidsFailure
 	} else if len(parseBIDS.Issues.Errors) > 0 {
 		content = resources.BidsFailure
@@ -119,13 +126,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] writing output badge for '%s/%s'\n", user, repo)
+		fmt.Fprintf(os.Stderr, "[Error] writing results badge for '%s/%s'\n", user, repo)
 	}
 
 	fmt.Fprintf(os.Stdout, "[Info] finished validating repo '%s/%s'\n", user, repo)
 
 	_, err = w.Write([]byte(content))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] returning badge %s", err.Error())
+		fmt.Fprintf(os.Stderr, "[Error] returning badge: %s", err.Error())
 	}
 }
