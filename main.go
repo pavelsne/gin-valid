@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
@@ -28,7 +30,7 @@ Options:
   `
 
 func root(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "ginvalid running")
+	http.ServeContent(w, r, "root", time.Now(), bytes.NewReader([]byte("alive")))
 }
 
 func registerRoutes(r *mux.Router) {
