@@ -1,12 +1,14 @@
 package web
 
 import (
-	"fmt"
+	"bytes"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
+	"github.com/mpsonntag/gin-valid/resources"
 	"github.com/mpsonntag/gin-valid/valutils"
 )
 
@@ -21,8 +23,7 @@ func Status(w http.ResponseWriter, r *http.Request) {
 	// Check whether this repo has ever been built
 	latestPath := filepath.Join(srvconfig.Dir.Result, user, repo, "latest")
 	if !valutils.ValidDirectory(latestPath) {
-		fmt.Fprintln(w, "Never built")
+		http.ServeContent(w, r, "unavailable.svg", time.Now(), bytes.NewReader([]byte(resources.BidsUnavailable)))
 		return
 	}
-	fmt.Fprintln(w, "Going on")
 }
