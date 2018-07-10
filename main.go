@@ -42,7 +42,7 @@ func main() {
 	srvcfg := config.Read()
 	err := log.Init()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] opening logfile '%s'\n", err.Error())
+		log.ShowWrite("[Error] opening logfile '%s'\n", err.Error())
 		os.Exit(-1)
 	}
 	defer log.Close()
@@ -62,7 +62,7 @@ func main() {
 	// Check gin is installed and available
 	outstr, err := valutils.AppVersionCheck(srvcfg.Exec.Gin)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
+		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] using %s", outstr)
@@ -70,7 +70,7 @@ func main() {
 	// Check bids-validator is installed
 	outstr, err = valutils.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
+		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
@@ -78,7 +78,7 @@ func main() {
 	// Parse commandline arguments
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
+		log.ShowWrite("\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] cli arguments: %v\n", args)
@@ -111,7 +111,7 @@ func main() {
 	log.ShowWrite("[Start] Listen and serve\n")
 	err = server.ListenAndServe()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n[Error] Server startup: '%v', abort...\n\n", err)
+		log.ShowWrite("[Error] Server startup: '%v', abort...\n\n", err)
 		os.Exit(-1)
 	}
 }
