@@ -42,8 +42,8 @@ func Init() error {
 		return err
 	}
 
-	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.Lshortfile)
-	Write("\n=== LOGINIT ===")
+	logger = log.New(logfile, "", log.Ldate|log.Ltime)
+	Write("=== LOGINIT ===")
 
 	return nil
 }
