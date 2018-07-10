@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
@@ -52,6 +53,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
+		http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(),
+			bytes.NewReader([]byte(resources.BidsUnavailable)))
 		return
 	}
 
@@ -131,8 +134,5 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(os.Stdout, "[Info] finished validating repo '%s/%s'\n", user, repo)
 
-	_, err = w.Write([]byte(content))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Error] returning badge: %s", err.Error())
-	}
+	http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(), bytes.NewReader([]byte(content)))
 }
