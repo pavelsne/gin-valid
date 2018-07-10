@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/mpsonntag/gin-valid/config"
+	"github.com/mpsonntag/gin-valid/log"
 	"github.com/mpsonntag/gin-valid/valutils"
 	"github.com/mpsonntag/gin-valid/web"
 )
@@ -39,17 +40,24 @@ func registerRoutes(r *mux.Router) {
 func main() {
 
 	srvcfg := config.Read()
+	err := log.Init()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "\n[Error] opening logfile '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	defer log.Close()
 
 	// Check whether the required directories are available and accessible
 	if !valutils.ValidDirectory(srvcfg.Dir.Temp) {
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
+
+	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
 
 	if !valutils.ValidDirectory(srvcfg.Dir.Result) {
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
+	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
 
 	// Check gin is installed and available
 	outstr, err := valutils.AppVersionCheck(srvcfg.Exec.Gin)
@@ -57,7 +65,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using %s", outstr)
+	log.ShowWrite("[Warmup] using %s", outstr)
 
 	// Check bids-validator is installed
 	outstr, err = valutils.AppVersionCheck(srvcfg.Exec.BIDS)
@@ -65,7 +73,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using bids-validator v%s", outstr)
+	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
 
 	// Parse commandline arguments
 	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
@@ -73,19 +81,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
 		os.Exit(-1)
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] cli arguments: %v\n", args)
+	log.ShowWrite("[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
-	port := srvcfg.Settings.Port
+	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
 	if valutils.IsValidPort(args["<port>"]) {
 		p := args["<port>"]
 		port = fmt.Sprintf(":%s", p.(string))
 	} else {
-		fmt.Fprintln(os.Stderr, "[Info] could not parse a valid port number, using default")
+		log.ShowWrite("[Warning] could not parse a valid port number, using default\n")
 	}
-	fmt.Fprintf(os.Stdout, "[Warmup] using port: '%s'\n", port)
+	log.ShowWrite("[Warmup] using port: '%s'\n", port)
 
-	fmt.Fprintln(os.Stdout, "[Warmup] registering routes")
+	log.ShowWrite("[Warmup] registering routes\n")
 	router := mux.NewRouter()
 	registerRoutes(router)
 
@@ -100,7 +108,7 @@ func main() {
 		Handler: handler,
 	}
 
-	fmt.Fprintln(os.Stdout, "[Start] Listen and serve")
+	log.ShowWrite("[Start] Listen and serve\n")
 	err = server.ListenAndServe()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] Server startup: '%v', abort...\n\n", err)
