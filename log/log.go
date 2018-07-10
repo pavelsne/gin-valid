@@ -43,7 +43,7 @@ func Init() error {
 	}
 
 	logger = log.New(logfile, "", log.Ldate|log.Ltime|log.Lshortfile)
-	Write("=== LOGINIT ===")
+	Write("\n=== LOGINIT ===")
 
 	return nil
 }
@@ -65,8 +65,12 @@ func Write(fmtstr string, args ...interface{}) {
 // ShowWrite writes a string to Stdout and passes
 // the arguments on to the log Writer function.
 func ShowWrite(fmtstr string, args ...interface{}) {
-	fmt.Fprintf(os.Stdout, fmtstr, args)
-	Write(fmtstr, args)
+	if len(args) == 0 {
+		fmt.Fprint(os.Stdout, fmtstr)
+	} else {
+		fmt.Fprintf(os.Stdout, fmtstr, args...)
+	}
+	Write(fmtstr, args...)
 }
 
 // Close trims and closes the log file, errors are ignored.
