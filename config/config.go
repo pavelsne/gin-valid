@@ -6,20 +6,26 @@ type Executables struct {
 	BIDS string
 }
 
-// Directories used by the server for
-// temporary and long term storage.
+// Directories used by the server for temporary and long term storage.
 type Directories struct {
 	Temp   string
 	Result string
 }
 
-// ServerCfg holds the config used to setup
-// the gin validation server and the paths
-// to all required executables, temporary
-// and permanent folders
+// Denotations provide any freuquently used file names or other denotations
+// e.g. validation result files, badge or result folder names.
+type Denotations struct {
+	ResultsFolder string
+	ResultsFile   string
+	ResultsBadge  string
+}
+
+// ServerCfg holds the config used to setup the gin validation server and
+// the paths to all required executables, temporary and permanent folders.
 type ServerCfg struct {
-	Exec Executables
-	Dir  Directories
+	Exec  Executables
+	Dir   Directories
+	Label Denotations
 }
 
 var ginValidDefaultServer = ServerCfg{
@@ -30,6 +36,11 @@ var ginValidDefaultServer = ServerCfg{
 	Directories{
 		Temp:   "/home/msonntag/Chaos/DL/val",
 		Result: "/home/msonntag/Chaos/DL/valresults",
+	},
+	Denotations{
+		ResultsFolder: "latest",
+		ResultsFile:   "results.json",
+		ResultsBadge:  "results.svg",
 	},
 }
 
