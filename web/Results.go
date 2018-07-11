@@ -16,7 +16,27 @@ import (
 // BidsResultStruct is the struct to parse a full BIDS validation json.
 type BidsResultStruct struct {
 	Issues struct {
-		Errors   []interface{} `json:"errors"`
+		Errors []struct {
+			Key      string `json:"key"`
+			Severity string `json:"severity"`
+			Reason   string `json:"reason"`
+			Files    []struct {
+				Key  string `json:"key"`
+				Code int    `json:"code"`
+				File struct {
+					Name         string `json:"name"`
+					Path         string `json:"path"`
+					RelativePath string `json:"relativePath"`
+				} `json:"file"`
+				Evidence  interface{} `json:"evidence"`
+				Line      interface{} `json:"line"`
+				Character interface{} `json:"character"`
+				Severity  string      `json:"severity"`
+				Reason    string      `json:"reason"`
+			} `json:"files"`
+			AdditionalFileCount int    `json:"additionalFileCount"`
+			Code                string `json:"code"`
+		} `json:"errors"`
 		Warnings []struct {
 			Key      string `json:"key"`
 			Severity string `json:"severity"`
