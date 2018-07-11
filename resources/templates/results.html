@@ -1,0 +1,22 @@
+{{ define "content" }}
+
+<h1>
+    {{ .Header }}
+</h1>
+<hr>
+<br/>
+
+<p>
+    {{ range $val := .Issues.Errors }}
+    <div>
+        Error
+    </div>
+    {{ end }}
+    {{ range $val := .Issues.Warnings }}
+    <div>
+        Warning
+    </div>
+    {{ end }}
+</p>
+
+{{ end }}
