@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/docopt/docopt-go"
@@ -110,10 +112,27 @@ func main() {
 		Handler: handler,
 	}
 
+	// Monitor the environment for shutdown signals to 
+	// gracefully shutdown the server.
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt)
+		<-sigchan
+		log.ShowWrite("[Info] System interrupt, shutting down server\n")
+		err := server.Shutdown(context.Background())
+		if err != nil {
+			log.ShowWrite("[Error] on server shutdown: %v\n", err)
+		}
+	}()
+
 	log.ShowWrite("[Start] Listen and serve\n")
 	err = server.ListenAndServe()
-	if err != nil {
+	if err == http.ErrServerClosed {
+		log.Close()
+		os.Exit(0)
+	} else if err != nil {
 		log.ShowWrite("[Error] Server startup: '%v', abort...\n\n", err)
+		log.Close()
 		os.Exit(-1)
 	}
 }
