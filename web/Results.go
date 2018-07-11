@@ -109,8 +109,9 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var parseBIDS BidsRoot
-	err = json.Unmarshal(content, &parseBIDS)
+	// Parse results file
+	var resBIDS BidsResultStruct
+	err = json.Unmarshal(content, &resBIDS)
 	if err != nil {
 		log.Write("[Error] unmarshalling '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
@@ -127,4 +128,21 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
+
+	// Parse results into html template and serve it
+	head := fmt.Sprintf("Validation for %s/%s", user, repo)
+	info := struct {
+		Header string
+		*BidsResultStruct
+	}{head, &resBIDS}
+
+	err = tmpl.ExecuteTemplate(w, "layout", info)
+	if err != nil {
+		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+
+	blargh := fmt.Sprintf("Errors: '%d', Warnings: '%d', Ignored: '%d'", len(resBIDS.Issues.Errors), len(resBIDS.Issues.Warnings), len(resBIDS.Issues.Ignored))
+	http.ServeContent(w, r, "results", time.Now(), bytes.NewReader([]byte(blargh)))
 }
