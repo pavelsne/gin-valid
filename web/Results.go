@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -119,9 +118,8 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse html template
-	resourcesPath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "mpsonntag", "gin-valid", "resources")
-	layout := path.Join(resourcesPath, "templates", "layout.html")
-	htmlcontent := path.Join(resourcesPath, "templates", "results.html")
+	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
+	htmlcontent := path.Join(srvcfg.Settings.ResourcesDir, "templates", "results.html")
 	tmpl, err := template.ParseFiles(layout, htmlcontent)
 	if err != nil {
 		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
@@ -142,7 +140,4 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
-
-	blargh := fmt.Sprintf("Errors: '%d', Warnings: '%d', Ignored: '%d'", len(resBIDS.Issues.Errors), len(resBIDS.Issues.Warnings), len(resBIDS.Issues.Ignored))
-	http.ServeContent(w, r, "results", time.Now(), bytes.NewReader([]byte(blargh)))
 }
