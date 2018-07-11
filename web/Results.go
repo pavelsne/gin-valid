@@ -100,7 +100,13 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	log.Write("[Info] results for repo '%s/%s'\n", user, repo)
 
 	srvcfg := config.Read()
-	fp := filepath.Join(srvcfg.Dir.Result, user, repo, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsFile)
+	fp := filepath.Join(srvcfg.Dir.Result, user, repo, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge)
+	badge, err := ioutil.ReadFile(fp)
+	if err != nil {
+		log.Write("[Error] serving '%s/%s' badge: %s\n", user, repo, err.Error())
+	}
+
+	fp = filepath.Join(srvcfg.Dir.Result, user, repo, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsFile)
 	content, err := ioutil.ReadFile(fp)
 	if err != nil {
 		log.Write("[Error] serving '%s/%s' result: %s\n", user, repo, err.Error())
@@ -130,9 +136,10 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("Validation for %s/%s", user, repo)
 	info := struct {
+		Badge  template.HTML
 		Header string
 		*BidsResultStruct
-	}{head, &resBIDS}
+	}{template.HTML(badge), head, &resBIDS}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
