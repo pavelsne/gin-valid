@@ -39,6 +39,7 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
 	r.HandleFunc("/validate/{user}/{repo}", web.Validate)
 	r.HandleFunc("/status/{user}/{repo}", web.Status)
+	r.HandleFunc("/results/{user}/{repo}", web.Results)
 }
 
 func main() {
@@ -112,7 +113,7 @@ func main() {
 		Handler: handler,
 	}
 
-	// Monitor the environment for shutdown signals to 
+	// Monitor the environment for shutdown signals to
 	// gracefully shutdown the server.
 	go func() {
 		sigchan := make(chan os.Signal, 1)
