@@ -8,10 +8,21 @@
 
 <p>
     {{ range $val := .Issues.Errors }}
+    <hr>
     <div>
-        Error
+        {{ $val.Severity }}, {{ $val.Key }}
+    </div>
+    <div>
+        Reason: {{ $val.Reason }}
+    </div>
+    <div>
+        {{ range $file := $val.Files }}
+        <div>Filename: {{ $file.File.Name }} (Code: {{ $file.Code }})</div>
+        <div>Path: {{ $file.File.Path }}</div>
+        {{ end }}
     </div>
     {{ end }}
+
     {{ range $val := .Issues.Warnings }}
     <div>
         Warning
