@@ -42,7 +42,12 @@ func Init() error {
 		return err
 	}
 
-	logger = log.New(logfile, "", log.Ldate|log.Ltime)
+	trim(logfile, srvcfg.Settings.LogSize)
+
+	logger = log.New(logfile, "", 0)
+	Write("\n")
+
+	logger.SetFlags(log.Ldate | log.Ltime)
 	Write("=== LOGINIT ===")
 
 	return nil
