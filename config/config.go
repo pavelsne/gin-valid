@@ -1,5 +1,10 @@
 package config
 
+import (
+	"os"
+	"path/filepath"
+)
+
 // Executables used by the server.
 type Executables struct {
 	Gin  string
@@ -24,8 +29,9 @@ type Denotations struct {
 
 // Settings provide the default server settings.
 type Settings struct {
-	Port    string
-	LogSize int
+	Port         string
+	LogSize      int
+	ResourcesDir string
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
@@ -39,8 +45,9 @@ type ServerCfg struct {
 
 var ginValidDefaultServer = ServerCfg{
 	Settings{
-		Port:    "3033",
-		LogSize: 1048576,
+		Port:         "3033",
+		LogSize:      1048576,
+		ResourcesDir: filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "mpsonntag", "gin-valid", "resources"),
 	},
 	Executables{
 		Gin:  "gin",
