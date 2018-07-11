@@ -3,8 +3,12 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -113,5 +117,14 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.ServeContent(w, r, "results", time.Now(), bytes.NewReader(content))
+	// Parse html template
+	resourcesPath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "mpsonntag", "gin-valid", "resources")
+	layout := path.Join(resourcesPath, "templates", "layout.html")
+	htmlcontent := path.Join(resourcesPath, "templates", "results.html")
+	tmpl, err := template.ParseFiles(layout, htmlcontent)
+	if err != nil {
+		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
 }
