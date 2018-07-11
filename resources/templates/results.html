@@ -40,4 +40,16 @@
     {{ end }}
 </p>
 
+{{ if .Summary }}
+<p>
+    <div>Summary</div>
+    <div>Sessions: {{ .Summary.Sessions }}</div>
+    <div>Subjects: {{ .Summary.Subjects }}</div>
+    <div>Tasks: {{ .Summary.Tasks }}</div>
+    <div>Modalities: {{ .Summary.Modalities }}</div>
+    <div>Total files: {{ .Summary.TotalFiles }}</div>
+    <div>Size: {{ .Summary.Size }}</div>
+</p>
+{{ end }}
+
 {{ end }}
