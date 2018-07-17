@@ -7,40 +7,40 @@ import (
 
 // Executables used by the server.
 type Executables struct {
-	Gin  string
-	BIDS string
+	Gin  string `json:"gin"`
+	BIDS string `json:"bids"`
 }
 
 // Directories used by the server for temporary and long term storage.
 type Directories struct {
-	Temp   string
-	Result string
-	Log    string
+	Temp   string `json:"temp"`
+	Result string `json:"result"`
+	Log    string `json:"log"`
 }
 
 // Denotations provide any freuquently used file names or other denotations
 // e.g. validation result files, badge or result folder names.
 type Denotations struct {
-	LogFile       string
-	ResultsFolder string
-	ResultsFile   string
-	ResultsBadge  string
+	LogFile       string `json:"logfile"`
+	ResultsFolder string `json:"resultsfolder"`
+	ResultsFile   string `json:"resultsfile"`
+	ResultsBadge  string `json:"resultsbadge"`
 }
 
 // Settings provide the default server settings.
 type Settings struct {
-	Port         string
-	LogSize      int
-	ResourcesDir string
+	Port         string `json:"port"`
+	LogSize      int    `json:"logsize"`
+	ResourcesDir string `json:"resourcesdir"`
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
 // the paths to all required executables, temporary and permanent folders.
 type ServerCfg struct {
-	Settings Settings
-	Exec     Executables
-	Dir      Directories
-	Label    Denotations
+	Settings Settings    `json:"settings"`
+	Exec     Executables `json:"executables"`
+	Dir      Directories `json:"directories"`
+	Label    Denotations `json:"denotations"`
 }
 
 var ginValidDefaultServer = ServerCfg{
