@@ -47,16 +47,16 @@ var ginValidDefaultServer = ServerCfg{
 	Settings{
 		Port:         "3033",
 		LogSize:      1048576,
-		ResourcesDir: filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "mpsonntag", "gin-valid", "resources"),
+		ResourcesDir: filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "G-Node", "gin-valid", "resources"),
 	},
 	Executables{
 		Gin:  "gin",
-		BIDS: "/home/msonntag/node_modules/.bin/bids-validator",
+		BIDS: "bids-validator",
 	},
 	Directories{
-		Temp:   "/home/msonntag/Chaos/DL/val",
-		Result: "/home/msonntag/Chaos/DL/valresults",
-		Log:    "/home/msonntag/Chaos/DL/val",
+		Temp:   filepath.Join(os.TempDir(), "gin-valid", "val"),
+		Result: filepath.Join(os.Getenv("HOME"), "gin-valid", "valresults"),
+		Log:    filepath.Join(os.Getenv("HOME"), "gin-valid", "val"),
 	},
 	Denotations{
 		LogFile:       "ginvalid.log",
