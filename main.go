@@ -18,7 +18,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const usage = `Server validating BIDS files'es
+const usage = `Server validating BIDS files
 
 Usage:
   ginvalid [--listen <port>]
@@ -57,6 +57,14 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// Parse commandline arguments
+	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
+	if err != nil {
+		log.ShowWrite("\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] cli arguments: %v\n", args)
+
 	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
 
 	if !valutils.ValidDirectory(srvcfg.Dir.Result) {
@@ -79,14 +87,6 @@ func main() {
 		os.Exit(-1)
 	}
 	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
-
-	// Parse commandline arguments
-	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
-	if err != nil {
-		log.ShowWrite("\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
 	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
