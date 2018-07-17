@@ -23,14 +23,15 @@ import (
 const usage = `Server validating BIDS files
 
 Usage:
-  ginvalid [--listen <port>]
+  ginvalid [--listen=<port>] [--config=<path>]
   ginvalid -h | --help
   ginvalid --version
 
 Options:
   -h --help           Show this screen.
   --version           Print version.
-  --listen            Port to listen at [default:3033]
+  --listen=<port>     Port to listen at [default:3033]
+  --config=<path>     Path to a json server config file
   `
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -114,8 +115,8 @@ func main() {
 
 	// Use port if provided.
 	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
-	if valutils.IsValidPort(args["<port>"]) {
-		p := args["<port>"]
+	if valutils.IsValidPort(args["--listen"]) {
+		p := args["--listen"]
 		port = fmt.Sprintf(":%s", p.(string))
 	} else {
 		log.ShowWrite("[Warning] could not parse a valid port number, using default\n")
