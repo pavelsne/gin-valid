@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -52,6 +54,24 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
 		os.Exit(-1)
+	}
+
+	// Parse and load custom server confguration
+	if args["--config"] != nil {
+		content, err := ioutil.ReadFile(args["--config"].(string))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[Error] reading config file %v\n", args["--config"])
+			os.Exit(-1)
+		}
+
+		// Overwrite any default settings with information from the
+		// provided config file.
+		err = json.Unmarshal(content, &srvcfg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[Error] unmarshalling config file %s\n", err.Error())
+			os.Exit(-1)
+		}
+		config.Set(srvcfg)
 	}
 
 	err = log.Init()
