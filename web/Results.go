@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/log"
 	"github.com/gorilla/mux"
-	"github.com/mpsonntag/gin-valid/config"
-	"github.com/mpsonntag/gin-valid/log"
 )
 
 // BidsResultStruct is the struct to parse a full BIDS validation json.

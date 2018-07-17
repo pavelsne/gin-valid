@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/mpsonntag/gin-valid/config"
+	"github.com/G-Node/gin-valid/config"
 )
 
 var logfile *os.File

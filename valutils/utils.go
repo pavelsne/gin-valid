@@ -3,7 +3,7 @@ package valutils
 import (
 	"os"
 
-	"github.com/mpsonntag/gin-valid/log"
+	"github.com/G-Node/gin-valid/log"
 )
 
 // ValidDirectory checks whether a given path exists and refers to a valid directory.

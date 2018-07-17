@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources"
 	"github.com/gorilla/mux"
-	"github.com/mpsonntag/gin-valid/config"
-	"github.com/mpsonntag/gin-valid/log"
-	"github.com/mpsonntag/gin-valid/resources"
 )
 
 // BidsMessages contains Errors, Warnings and Ignored messages.

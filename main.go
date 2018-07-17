@@ -9,16 +9,16 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/valutils"
+	"github.com/G-Node/gin-valid/web"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/mpsonntag/gin-valid/config"
-	"github.com/mpsonntag/gin-valid/log"
-	"github.com/mpsonntag/gin-valid/valutils"
-	"github.com/mpsonntag/gin-valid/web"
 )
 
-const usage = `Server validating BIDS files
+const usage = `Server validating BIDS files'es
 
 Usage:
   ginvalid [--listen <port>]
