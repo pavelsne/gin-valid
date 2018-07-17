@@ -70,3 +70,8 @@ var ginValidDefaultServer = ServerCfg{
 func Read() ServerCfg {
 	return ginValidDefaultServer
 }
+
+// Set sets the server configuration.
+func Set(cfg ServerCfg) {
+	ginValidDefaultServer = cfg
+}
