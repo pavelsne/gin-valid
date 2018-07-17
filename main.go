@@ -44,26 +44,30 @@ func registerRoutes(r *mux.Router) {
 
 func main() {
 
+	// Initialize and read the default server config
 	srvcfg := config.Read()
-	err := log.Init()
+
+	// Parse commandline arguments
+	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
 	if err != nil {
-		log.ShowWrite("[Error] opening logfile '%s'\n", err.Error())
+		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
+		os.Exit(-1)
+	}
+
+	err = log.Init()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[Error] opening logfile '%s'\n", err.Error())
 		os.Exit(-1)
 	}
 	defer log.Close()
+
+	// Log cli arguments
+	log.Write("[Warmup] cli arguments: %v\n", args)
 
 	// Check whether the required directories are available and accessible
 	if !valutils.ValidDirectory(srvcfg.Dir.Temp) {
 		os.Exit(-1)
 	}
-
-	// Parse commandline arguments
-	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
-	if err != nil {
-		log.ShowWrite("\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] cli arguments: %v\n", args)
 
 	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
 
