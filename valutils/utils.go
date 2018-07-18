@@ -11,10 +11,10 @@ func ValidDirectory(path string) bool {
 	var fi os.FileInfo
 	var err error
 	if fi, err = os.Stat(path); err != nil {
-		log.Write("[Error] checking temp directory %s\n", err.Error())
+		log.ShowWrite("[Error] checking temp directory '%s'\n", err.Error())
 		return false
 	} else if !fi.IsDir() {
-		log.Write("[Error] invalid temp directory '%s' \n", fi.Name())
+		log.ShowWrite("[Error] invalid temp directory '%s' \n", fi.Name())
 		return false
 	}
 	return true
