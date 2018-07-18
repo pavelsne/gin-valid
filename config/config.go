@@ -32,6 +32,7 @@ type Settings struct {
 	Port         string `json:"port"`
 	LogSize      int    `json:"logsize"`
 	ResourcesDir string `json:"resourcesdir"`
+	GPW          string `json:"gpw"`
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
@@ -48,6 +49,7 @@ var ginValidDefaultServer = ServerCfg{
 		Port:         "3033",
 		LogSize:      1048576,
 		ResourcesDir: filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "G-Node", "gin-valid", "resources"),
+		GPW:          "",
 	},
 	Executables{
 		Gin:  "gin",
