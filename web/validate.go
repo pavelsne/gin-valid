@@ -44,7 +44,7 @@ func unavailable(w http.ResponseWriter, r *http.Request, badge string, message s
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	srvconfig := config.Read()
+	srvcfg := config.Read()
 
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
@@ -55,12 +55,12 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	// login with gin servce user, gaining access to public repositories for now
 	cmd := exec.Command("gin", "login", "ServiceWaiter")
-	cmd.Stdin = strings.NewReader(fmt.Sprintln(srvconfig.Settings.GPW))
+	cmd.Stdin = strings.NewReader(fmt.Sprintln(srvcfg.Settings.GPW))
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	if err := cmd.Run(); err != nil {
 		msg := fmt.Sprintf("[Error] logging into gin: '%s, %s'\n", out.String(), serr.String())
-		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
@@ -79,21 +79,21 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stderr = &serr
 	if err := cmd.Run(); err != nil {
 		msg := fmt.Sprintf("[Error] accessing '%s/%s': '%s, %s'\n", user, repo, out.String(), serr.String())
-		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
-	tmpdir, err := ioutil.TempDir(srvconfig.Dir.Temp, "bidsval_")
+	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, "bidsval_")
 	if err != nil {
 		msg := fmt.Sprintf("[Error] creating temp gin directory: '%s'\n", err.Error())
-		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
 	// enable cleanup once tried and tested
 	defer os.RemoveAll(tmpdir)
 
-	cmd = exec.Command(srvconfig.Exec.Gin, "get", fmt.Sprintf("%s/%s", user, repo))
+	cmd = exec.Command(srvcfg.Exec.Gin, "get", fmt.Sprintf("%s/%s", user, repo))
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
@@ -101,23 +101,23 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
 		msg := fmt.Sprintf("[Error] running gin get: '%s', '%s'\n", out.String(), serr.String())
-		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	resdir := filepath.Join(srvconfig.Dir.Result, "bids", user, repo, srvconfig.Label.ResultsFolder)
+	resdir := filepath.Join(srvcfg.Dir.Result, "bids", user, repo, srvcfg.Label.ResultsFolder)
 	err = os.MkdirAll(resdir, os.ModePerm)
 	if err != nil {
 		msg := fmt.Sprintf("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
-		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
-	outBadge := filepath.Join(resdir, srvconfig.Label.ResultsBadge)
-	cmd = exec.Command(srvconfig.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
+	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+	cmd = exec.Command(srvcfg.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
@@ -138,7 +138,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	output := out.Bytes()
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	outFile := filepath.Join(resdir, srvconfig.Label.ResultsFile)
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
 		log.Write("[Error] writing results file for '%s/%s'\n", user, repo)
@@ -164,5 +164,5 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	log.Write("[Info] finished validating repo '%s/%s'\n", user, repo)
 
-	http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(), bytes.NewReader([]byte(content)))
+	http.ServeContent(w, r, srvcfg.Label.ResultsBadge, time.Now(), bytes.NewReader([]byte(content)))
 }
