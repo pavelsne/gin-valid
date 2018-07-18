@@ -86,8 +86,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder)
-	err = os.MkdirAll(fp, os.ModePerm)
+	resdir := filepath.Join(srvconfig.Dir.Result, "bids", user, repo, srvconfig.Label.ResultsFolder)
+	err = os.MkdirAll(resdir, os.ModePerm)
 	if err != nil {
 		msg := fmt.Sprintf("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
 		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
@@ -95,7 +95,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
-	outBadge := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsBadge)
+	outBadge := filepath.Join(resdir, srvconfig.Label.ResultsBadge)
 	cmd = exec.Command(srvconfig.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
 	out.Reset()
 	cmd.Stdout = &out
@@ -117,7 +117,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	output := out.Bytes()
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	outFile := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder, srvconfig.Label.ResultsFile)
+	outFile := filepath.Join(resdir, srvconfig.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
 		log.Write("[Error] writing results file for '%s/%s'\n", user, repo)
