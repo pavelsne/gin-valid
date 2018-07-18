@@ -54,9 +54,9 @@ var ginValidDefaultServer = ServerCfg{
 		BIDS: "bids-validator",
 	},
 	Directories{
-		Temp:   filepath.Join(os.TempDir(), "gin-valid", "val"),
-		Result: filepath.Join(os.Getenv("HOME"), "gin-valid", "valresults"),
-		Log:    filepath.Join(os.Getenv("HOME"), "gin-valid", "val"),
+		Temp:   filepath.Join(os.Getenv("GINVALIDTEMP")),
+		Log:    filepath.Join(os.Getenv("GINVALIDHOME"), "gin-valid"),
+		Result: filepath.Join(os.Getenv("GINVALIDHOME"), "gin-valid", "results"),
 	},
 	Denotations{
 		LogFile:       "ginvalid.log",
