@@ -32,6 +32,12 @@ type BidsRoot struct {
 	Issues BidsMessages `json:"issues"`
 }
 
+// unavailable creates a log entry and writes the unavailable badge to the responseWriter.
+func unavailable(w http.ResponseWriter, r *http.Request, badge string, message string) {
+	log.Write(message)
+	http.ServeContent(w, r, badge, time.Now(), bytes.NewReader([]byte(resources.BidsUnavailable)))
+}
+
 // Validate temporarily clones a provided repository from
 // a gin server and checks whether the content of the
 // repository is a valid BIDS dataset.
