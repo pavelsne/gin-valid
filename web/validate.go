@@ -72,7 +72,11 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// cleaned up while the second starts anew - to make sure its always
 	// the latest state of the repository that is being validated.
 
-	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
+	cmd = exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
 	if err := cmd.Run(); err != nil {
 		msg := fmt.Sprintf("[Error] accessing '%s/%s': '%s, %s'\n", user, repo, out.String(), serr.String())
 		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
@@ -90,8 +94,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(tmpdir)
 
 	cmd = exec.Command(srvconfig.Exec.Gin, "get", fmt.Sprintf("%s/%s", user, repo))
-	var out bytes.Buffer
+	out.Reset()
+	serr.Reset()
 	cmd.Stdout = &out
+	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
 		msg := fmt.Sprintf("[Error] running gin get: '%s', '%s'\n", out.String(), serr.String())
@@ -113,8 +119,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	outBadge := filepath.Join(resdir, srvconfig.Label.ResultsBadge)
 	cmd = exec.Command(srvconfig.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
 	out.Reset()
+	serr.Reset()
 	cmd.Stdout = &out
-	var serr bytes.Buffer
 	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
