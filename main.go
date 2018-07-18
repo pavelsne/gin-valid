@@ -91,10 +91,6 @@ func main() {
 	}
 
 	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
-
-	if !valutils.ValidDirectory(srvcfg.Dir.Result) {
-		os.Exit(-1)
-	}
 	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
 
 	// Check gin is installed and available
