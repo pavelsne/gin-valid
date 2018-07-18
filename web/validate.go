@@ -59,16 +59,15 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	cmd := exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	if err := cmd.Run(); err != nil {
-
-		log.Write("[Error] accessing '%s/%s': '%s'\n", user, repo, err.Error())
-		http.ServeContent(w, r, srvconfig.Label.ResultsBadge, time.Now(),
-			bytes.NewReader([]byte(resources.BidsUnavailable)))
+		msg := fmt.Sprintf("[Error] accessing '%s/%s': '%s, %s'\n", user, repo, out.String(), serr.String())
+		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
 		return
 	}
 
 	tmpdir, err := ioutil.TempDir(srvconfig.Dir.Temp, "bidsval_")
 	if err != nil {
-		log.Write("[Error] creating temp gin directory: '%s'\n", err.Error())
+		msg := fmt.Sprintf("[Error] creating temp gin directory: '%s'\n", err.Error())
+		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
 		return
 	}
 
@@ -80,7 +79,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Stdout = &out
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		log.Write("[Error] running gin get: '%s'\n", err.Error())
+		msg := fmt.Sprintf("[Error] running gin get: '%s', '%s'\n", out.String(), serr.String())
+		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
 		return
 	}
 
@@ -89,7 +89,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	fp := filepath.Join(srvconfig.Dir.Result, user, repo, srvconfig.Label.ResultsFolder)
 	err = os.MkdirAll(fp, os.ModePerm)
 	if err != nil {
-		log.Write("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
+		msg := fmt.Sprintf("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
+		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
 		return
 	}
 
