@@ -54,7 +54,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var serr bytes.Buffer
 
 	// login with gin servce user, gaining access to public repositories for now
-	cmd := exec.Command("gin", "login", "ServiceWaiter")
+	cmd := exec.Command(srvcfg.Exec.Gin, "login", "ServiceWaiter")
 	cmd.Stdin = strings.NewReader(fmt.Sprintln(srvcfg.Settings.GPW))
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
@@ -72,7 +72,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// cleaned up while the second starts anew - to make sure its always
 	// the latest state of the repository that is being validated.
 
-	cmd = exec.Command("gin", "repoinfo", fmt.Sprintf("%s/%s", user, repo))
+	cmd = exec.Command(srvcfg.Exec.Gin, "repoinfo", fmt.Sprintf("%s/%s", user, repo))
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
