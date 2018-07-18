@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/G-Node/gin-valid/config"
 )
@@ -36,7 +36,13 @@ func trim(file *os.File, filesize int) {
 func Init() error {
 	srvcfg := config.Read()
 
-	fp := path.Join(srvcfg.Dir.Log, srvcfg.Label.LogFile)
+	// Make sure the path to the logfile exists
+	err := os.MkdirAll(srvcfg.Dir.Log, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	fp := filepath.Join(srvcfg.Dir.Log, srvcfg.Label.LogFile)
 	logfile, err := os.OpenFile(fp, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -71,7 +77,6 @@ func Write(fmtstr string, args ...interface{}) {
 // the arguments on to the log Writer function.
 func ShowWrite(fmtstr string, args ...interface{}) {
 	if len(args) == 0 {
-		fmt.Fprint(os.Stdout, fmtstr)
 	} else {
 		fmt.Fprintf(os.Stdout, fmtstr, args...)
 	}
