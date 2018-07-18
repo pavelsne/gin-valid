@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
@@ -48,6 +49,20 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
 	log.Write("[Info] validating repo '%s/%s'\n", user, repo)
+
+	var out bytes.Buffer
+	var serr bytes.Buffer
+
+	// login with gin servce user, gaining access to public repositories for now
+	cmd := exec.Command("gin", "login", "ServiceWaiter")
+	cmd.Stdin = strings.NewReader(fmt.Sprintln(srvconfig.Settings.GPW))
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	if err := cmd.Run(); err != nil {
+		msg := fmt.Sprintf("[Error] logging into gin: '%s, %s'\n", out.String(), serr.String())
+		unavailable(w, r, srvconfig.Label.ResultsBadge, msg)
+		return
+	}
 
 	// TODO add check if a repo is currently being validated. since
 	// the cloning can potentially take quite some time prohibit
