@@ -3,6 +3,7 @@ package helpers
 import (
 	"os"
 
+	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/log"
 )
 
@@ -18,4 +19,17 @@ func ValidDirectory(path string) bool {
 		return false
 	}
 	return true
+}
+
+// SupportedValidator checks whether a string matches
+// Validators supported by the server.
+func SupportedValidator(validator string) bool {
+	validators := config.Read().Settings.Validators
+
+	for _, val := range validators {
+		if val == validator {
+			return true
+		}
+	}
+	return false
 }
