@@ -128,7 +128,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 
 	// Parse html template
 	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
-	htmlcontent := path.Join(srvcfg.Settings.ResourcesDir, "templates", "results.html")
+	htmlcontent := path.Join(srvcfg.Settings.ResourcesDir, "templates", "bids_results.html")
 	tmpl, err := template.ParseFiles(layout, htmlcontent)
 	if err != nil {
 		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
