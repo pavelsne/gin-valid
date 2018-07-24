@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
-	"github.com/G-Node/gin-valid/valutils"
 	"github.com/G-Node/gin-valid/web"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
@@ -86,7 +86,7 @@ func main() {
 	log.Write("[Warmup] cli arguments: %v\n", args)
 
 	// Check whether the required directories are available and accessible
-	if !valutils.ValidDirectory(srvcfg.Dir.Temp) {
+	if !helpers.ValidDirectory(srvcfg.Dir.Temp) {
 		os.Exit(-1)
 	}
 
@@ -94,7 +94,7 @@ func main() {
 	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
 
 	// Check gin is installed and available
-	outstr, err := valutils.AppVersionCheck(srvcfg.Exec.Gin)
+	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
 	if err != nil {
 		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
 		os.Exit(-1)
@@ -102,7 +102,7 @@ func main() {
 	log.ShowWrite("[Warmup] using %s", outstr)
 
 	// Check bids-validator is installed
-	outstr, err = valutils.AppVersionCheck(srvcfg.Exec.BIDS)
+	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
 		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
 		os.Exit(-1)
@@ -111,7 +111,7 @@ func main() {
 
 	// Use port if provided.
 	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
-	if valutils.IsValidPort(args["--listen"]) {
+	if helpers.IsValidPort(args["--listen"]) {
 		p := args["--listen"]
 		port = fmt.Sprintf(":%s", p.(string))
 	} else {

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources"
 	"github.com/gorilla/mux"

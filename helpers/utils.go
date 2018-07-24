@@ -1,4 +1,4 @@
-package valutils
+package helpers
 
 import (
 	"os"
