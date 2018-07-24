@@ -96,9 +96,15 @@ type BidsResultStruct struct {
 
 // Results returns the results of a previously run BIDS validation.
 func Results(w http.ResponseWriter, r *http.Request) {
+	service := mux.Vars(r)["service"]
+	if !helpers.SupportedValidator(service) {
+		log.Write("[Error] unsupported validator '%s'\n", service)
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
+		return
+	}
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
-	log.Write("[Info] results for repo '%s/%s'\n", user, repo)
+	log.Write("[Info] '%s' results for repo '%s/%s'\n", service, user, repo)
 
 	srvcfg := config.Read()
 	resdir := filepath.Join(srvcfg.Dir.Result, "bids", user, repo, srvcfg.Label.ResultsFolder)

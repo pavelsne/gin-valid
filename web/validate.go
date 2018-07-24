@@ -45,11 +45,17 @@ func unavailable(w http.ResponseWriter, r *http.Request, badge string, message s
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	srvcfg := config.Read()
-
+	service := mux.Vars(r)["service"]
+	if !helpers.SupportedValidator(service) {
+		log.Write("[Error] unsupported validator '%s'\n", service)
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
+		return
+	}
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
-	log.Write("[Info] validating repo '%s/%s'\n", user, repo)
+	log.Write("[Info] '%s' validation for repo '%s/%s'\n", service, user, repo)
+
+	srvcfg := config.Read()
 
 	var out bytes.Buffer
 	var serr bytes.Buffer
