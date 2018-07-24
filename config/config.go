@@ -28,11 +28,13 @@ type Denotations struct {
 }
 
 // Settings provide the default server settings.
+// "Validators" currently only supports "BIDS".
 type Settings struct {
-	Port         string `json:"port"`
-	LogSize      int    `json:"logsize"`
-	ResourcesDir string `json:"resourcesdir"`
-	GPW          string `json:"gpw"`
+	Port         string   `json:"port"`
+	LogSize      int      `json:"logsize"`
+	ResourcesDir string   `json:"resourcesdir"`
+	GPW          string   `json:"gpw"`
+	Validators   []string `json:"validators"`
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
@@ -50,6 +52,7 @@ var ginValidDefaultServer = ServerCfg{
 		LogSize:      1048576,
 		ResourcesDir: filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "G-Node", "gin-valid", "resources"),
 		GPW:          "",
+		Validators:   []string{"bids"},
 	},
 	Executables{
 		Gin:  "gin",
