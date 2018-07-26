@@ -153,6 +153,30 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Use validation config file if available
+	valroot := filepath.Join(tmpdir, repo)
+	var validateNifti bool
+
+	cfgpath := filepath.Join(tmpdir, repo, srvcfg.Label.ValidationConfigFile)
+	log.Write("[Info] looking for config file at '%s'", cfgpath)
+	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
+		valcfg, err := handleValidationConfig(cfgpath)
+		if err == nil {
+			checkdir := filepath.Join(tmpdir, repo, valcfg.Bidscfg.BidsRoot)
+			if fi, err = os.Stat(checkdir); err == nil && fi.IsDir() {
+				valroot = checkdir
+				log.Write("[Info] using validation root directory: %s\n%s\n", valroot, checkdir)
+			} else {
+				log.Write("[Error] reading validation root directory: %s", err.Error())
+			}
+			validateNifti = valcfg.Bidscfg.ValidateNifti
+		} else {
+			log.Write("[Error] unmarshalling validation config file: %s", err.Error())
+		}
+	} else {
+		log.Write("[Info] no validation config file found or processed, running from repo root (%s)", err.Error())
+	}
+
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	cmd = exec.Command(srvcfg.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
