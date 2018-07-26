@@ -21,10 +21,11 @@ type Directories struct {
 // Denotations provide any freuquently used file names or other denotations
 // e.g. validation result files, badge or result folder names.
 type Denotations struct {
-	LogFile       string `json:"logfile"`
-	ResultsFolder string `json:"resultsfolder"`
-	ResultsFile   string `json:"resultsfile"`
-	ResultsBadge  string `json:"resultsbadge"`
+	LogFile              string `json:"logfile"`
+	ResultsFolder        string `json:"resultsfolder"`
+	ResultsFile          string `json:"resultsfile"`
+	ResultsBadge         string `json:"resultsbadge"`
+	ValidationConfigFile string `json:"valcfgfile"`
 }
 
 // Settings provide the default server settings.
@@ -64,10 +65,11 @@ var ginValidDefaultServer = ServerCfg{
 		Result: filepath.Join(os.Getenv("GINVALIDHOME"), "gin-valid", "results"),
 	},
 	Denotations{
-		LogFile:       "ginvalid.log",
-		ResultsFolder: "latest",
-		ResultsFile:   "results.json",
-		ResultsBadge:  "results.svg",
+		LogFile:              "ginvalid.log",
+		ResultsFolder:        "latest",
+		ResultsFile:          "results.json",
+		ResultsBadge:         "results.svg",
+		ValidationConfigFile: "ginvalidation.yaml",
 	},
 }
 
