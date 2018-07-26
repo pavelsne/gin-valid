@@ -179,7 +179,18 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	// Ignoring NiftiHeaders for now, since it seems to be a common error
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
-	cmd = exec.Command(srvcfg.Exec.BIDS, "--ignoreNiftiHeaders", "--json", fmt.Sprintf("%s/%s", tmpdir, repo))
+	log.Write("[Info] Running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
+
+	// Make sure the validator arguments are in the right order
+	var args []string
+	if !validateNifti {
+		args = append(args, "--ignoreNiftiHeaders")
+	}
+	args = append(args, "--json")
+	args = append(args, valroot)
+
+	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
+	cmd = exec.Command(srvcfg.Exec.BIDS, args...)
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
@@ -187,7 +198,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
 		log.Write("[Error] running bids validation (%s/%s): '%s', '%s', '%s'",
-			tmpdir, repo, err.Error(), serr.String(), out.String())
+			valroot, repo, err.Error(), serr.String(), out.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
