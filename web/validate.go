@@ -34,6 +34,18 @@ type BidsRoot struct {
 	Issues BidsMessages `json:"issues"`
 }
 
+// Validationcfg is used to unmarshall a config file
+// holding information specific for running the
+// various validations. e.g. where the root
+// folder of a bids directory can be found or
+// whether the NiftiHeaders should be ignored.
+type Validationcfg struct {
+	Bidscfg struct {
+		BidsRoot      string `yaml:"bidsroot"`
+		ValidateNifti bool   `yaml:"validatenifti"`
+	} `yaml:"bidsconfig"`
+}
+
 // unavailable creates a log entry and writes the unavailable badge to the responseWriter.
 func unavailable(w http.ResponseWriter, r *http.Request, badge string, message string) {
 	log.Write(message)
