@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -50,6 +51,24 @@ type Validationcfg struct {
 func unavailable(w http.ResponseWriter, r *http.Request, badge string, message string) {
 	log.Write(message)
 	http.ServeContent(w, r, badge, time.Now(), bytes.NewReader([]byte(resources.BidsUnavailable)))
+}
+
+// handleValidationConfig unmarshalles a yaml config file
+// from file and returns the resulting Validationcfg struct.
+func handleValidationConfig(cfgpath string) (Validationcfg, error) {
+	valcfg := Validationcfg{}
+
+	content, err := ioutil.ReadFile(cfgpath)
+	if err != nil {
+		return valcfg, err
+	}
+
+	err = yaml.Unmarshal(content, &valcfg)
+	if err != nil {
+		return valcfg, err
+	}
+
+	return valcfg, nil
 }
 
 // Validate temporarily clones a provided repository from
