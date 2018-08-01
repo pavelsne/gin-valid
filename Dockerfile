@@ -1,18 +1,13 @@
 FROM ubuntu:18.04
 
-RUN apt-get update
-RUN apt-get install -y wget
-RUN wget -O- http://neuro.debian.net/lists/trusty.de-md.full | tee /etc/apt/sources.list.d/neurodebian.sources.list
-RUN apt-get install gnupg -y
-
-RUN apt-key adv --recv-keys --keyserver hkp://pgp.mit.edu:80 0xA5D32F012649A5A9
-RUN apt-get update
-RUN apt-get install -y \
+RUN apt update
+RUN apt install -y \
+    wget \
     git \
-    git-annex-standalone\
-    golang
-RUN apt install -y nodejs
-RUN apt install -y npm
+    git-annex \
+    golang \
+    nodejs \
+    npm
 
 RUN npm install -g bids-validator
 
@@ -44,5 +39,5 @@ VOLUME ["/config"]
 ENV GINVALIDHOME /results
 ENV GINVALIDTEMP /temp
 
-ENTRYPOINT ./gin-valid --config=/config/cfg.json 
+ENTRYPOINT ./gin-valid --config=/config/cfg.json
 EXPOSE 3033
