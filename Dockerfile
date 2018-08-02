@@ -28,16 +28,13 @@ WORKDIR /go/src/github.com/G-Node/gin-valid
 RUN go get ./...
 RUN go build
 
-RUN mkdir -p /results/gin-valid
-RUN mkdir -p /temp
-RUN mkdir -p /config
+RUN mkdir -p /gin-valid/results/
+RUN mkdir -p /gin-valid/tmp/
+RUN mkdir -p /gin-valid/config
 
-VOLUME ["/results"]
-VOLUME ["/temp"]
-VOLUME ["/config"]
+VOLUME ["/gin-valid/"]
 
-ENV GINVALIDHOME /results
-ENV GINVALIDTEMP /temp
+ENV GINVALIDHOME /gin-valid/
 
 ENTRYPOINT ./gin-valid --config=/config/cfg.json
 EXPOSE 3033
