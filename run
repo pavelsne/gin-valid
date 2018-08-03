@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+go build
+docker build --tag=ginvalid .
+
+runloc=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+configdir="${runloc}/srvdata/config"
+configfile="${configdir}/cfg.json"
+
+srvhome=${runloc}/srvdata
+
+# TODO: If cfg does not exist, create empty
+
+docker run --rm -v ${srvhome}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --name ginvalid -it ginvalid
