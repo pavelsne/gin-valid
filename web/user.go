@@ -32,7 +32,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tmpl.Execute(w, nil)
-	} else {
+	} else if r.Method == http.MethodPost {
 		log.Write("Doing login")
 		r.ParseForm()
 		username := r.Form["username"][0]
@@ -46,27 +46,25 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 		// TODO: Store user token in session cookie
 		// Redirect to repo listing
+		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
 	}
 }
 
 const repostmpl = `
-<html>
-    <head>
-    <title></title>
-    </head>
-    <body>
-        {{ range . }}
-
-			<p><b><a href=/repos/{{.FullName}}/enable>{{.FullName}}</a></b></p>
-			<p>{{.Description}} {{.Website}}</p>
-			<hr>
-		{{ end }}
-    </body>
-</html>
+	{{ define "content" }}
+	<br/><br/>
+	<div>
+	{{ range . }}
+	<div><b><a href=/repos/{{.FullName}}/enable>{{.FullName}}</a></b></div>
+	<div>{{.Description}} {{.Website}}</div>
+	<hr>
+	{{ end }}
+	</div>
+	{{ end }}
 `
 
 func ListRepos(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
+	if r.Method != http.MethodGet {
 		return
 	}
 	vars := mux.Vars(r)
@@ -85,8 +83,18 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("Got %d repos\n", len(repos))
-
-	rl := template.New("repos")
-	rl.Parse(repostmpl)
-	rl.Execute(w, &repos)
+	tmpl := template.New("layout")
+	tmpl, err = tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] failed to parse html layout page")
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(repostmpl)
+	if err != nil {
+		log.Write("[Error] failed to render login page")
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl.Execute(w, &repos)
 }

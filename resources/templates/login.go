@@ -1,5 +1,6 @@
 package templates
 
+// TODO: add csrf thingie
 var Login = `
 {{ define "content" }}
 
