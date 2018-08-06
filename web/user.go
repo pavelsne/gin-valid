@@ -34,6 +34,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
 		}
+		// TODO: Store user token in session cookie
 		// Redirect to repo listing
 	}
 }
