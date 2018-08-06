@@ -1,27 +1,37 @@
 package web
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
+	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
-	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/gorilla/mux"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	srvcfg := config.Read()
-	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
-	loginpage := path.Join(srvcfg.Settings.ResourcesDir, "templates", "login.html")
-	if r.Method == "GET" {
+
+	if r.Method == http.MethodGet {
 		log.Write("Login page")
-		tf := template.New("layout")
-		tf.ParseFiles(layout, loginpage)
-		tf.Execute(w, nil)
+		tmpl := template.New("layout")
+		tmpl, err := tmpl.Parse(templates.Layout)
+		if err != nil {
+			log.Write("[Error] failed to parse html layout page")
+			http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+			return
+		}
+		tmpl, err = tmpl.Parse(templates.Login)
+		if err != nil {
+			log.Write("[Error] failed to render login page")
+			http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+			return
+		}
+		tmpl.Execute(w, nil)
 	} else {
 		log.Write("Doing login")
 		r.ParseForm()
@@ -56,7 +66,7 @@ const repostmpl = `
 `
 
 func ListRepos(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method == http.MethodGet {
 		return
 	}
 	vars := mux.Vars(r)
