@@ -43,8 +43,9 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
 	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)
 	r.HandleFunc("/results/{service}/{user}/{repo}", web.Results)
-	r.HandleFunc("/newuser", web.SetToken)
-	r.HandleFunc("/{user}", web.ListRepos)
+	r.HandleFunc("/login", web.Login)
+	r.HandleFunc("/repos/{user}", web.ListRepos)
+	r.HandleFunc("/repos/{user}/{repo}/enable", web.EnableHook)
 }
 
 func startupCheck(srvcfg config.ServerCfg) {

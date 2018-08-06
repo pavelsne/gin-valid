@@ -13,4 +13,4 @@ srvhome=${runloc}/srvdata
 
 # TODO: If cfg does not exist, create empty
 
-docker run --rm -v ${srvhome}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --name ginvalid -it ginvalid
+docker run --rm -v ${srvhome}:/gin-valid -v ${configdir}:/config/ -v ${runloc}/resources:/resources -p 3033:3033 --link=gindev --name ginvalid -it ginvalid

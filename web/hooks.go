@@ -2,13 +2,25 @@ package web
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-valid/log"
 	gogs "github.com/gogits/go-gogs-client"
+	"github.com/gorilla/mux"
 )
 
-const serveralias = "localgogs" // change to "gin" for live server
+const serveralias = "gindev" // change to "gin" for live server
+
+func EnableHook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		return
+	}
+	vars := mux.Vars(r)
+	user := vars["user"]
+	repo := vars["repo"]
+	createValidHook(fmt.Sprintf("%s/%s", user, repo))
+}
 
 // TODO: Return error
 func createValidHook(repopath string) {

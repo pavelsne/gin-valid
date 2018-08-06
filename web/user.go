@@ -4,38 +4,37 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path"
 
 	"github.com/G-Node/gin-cli/ginclient"
-	"github.com/G-Node/gin-cli/web"
+	glog "github.com/G-Node/gin-cli/ginclient/log"
+	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/log"
 	"github.com/gorilla/mux"
 )
 
-const tokenform = `
-<html>
-    <head>
-    <title></title>
-    </head>
-    <body>
-        <form action="/newuser" method="post">
-            Username: <input type="text" name="username">
-            Token:    <input type="text" name="token">
-            <input type="submit" value="Submit">
-        </form>
-    </body>
-</html>
-`
-
-func SetToken(w http.ResponseWriter, r *http.Request) {
+func Login(w http.ResponseWriter, r *http.Request) {
+	srvcfg := config.Read()
+	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
+	loginpage := path.Join(srvcfg.Settings.ResourcesDir, "templates", "login.html")
 	if r.Method == "GET" {
-		tf := template.New("token")
-		tf.Parse(tokenform)
+		log.Write("Login page")
+		tf := template.New("layout")
+		tf.ParseFiles(layout, loginpage)
 		tf.Execute(w, nil)
 	} else {
+		log.Write("Doing login")
 		r.ParseForm()
 		username := r.Form["username"][0]
-		token := r.Form["token"][0]
-		ut := web.UserToken{Username: username, Token: token}
-		ut.StoreToken(serveralias)
+		password := r.Form["password"][0]
+		client := ginclient.New(serveralias)
+		glog.Init("")
+		glog.Write("Performing login from gin-valid")
+		err := client.Login(username, password, "gin-valid")
+		if err != nil {
+			log.Write("[error] Login failed: %s", err.Error())
+		}
+		// Redirect to repo listing
 	}
 }
 
@@ -47,7 +46,7 @@ const repostmpl = `
     <body>
         {{ range . }}
 
-			<p><b>{{.FullName}}</b></p>
+			<p><b><a href=/repos/{{.FullName}}/enable>{{.FullName}}</a></b></p>
 			<p>{{.Description}} {{.Website}}</p>
 			<hr>
 		{{ end }}
