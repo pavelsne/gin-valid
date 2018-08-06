@@ -7,13 +7,13 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/gorilla/mux"
 )
 
@@ -133,9 +133,14 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse html template
-	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
-	htmlcontent := path.Join(srvcfg.Settings.ResourcesDir, "templates", "bids_results.html")
-	tmpl, err := template.ParseFiles(layout, htmlcontent)
+	tmpl := template.New("layout")
+	tmpl, err = tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.BidsResults)
 	if err != nil {
 		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))

@@ -47,6 +47,32 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/{user}", web.ListRepos)
 }
 
+func startupCheck(srvcfg config.ServerCfg) {
+	// Check whether the required directories are available and accessible
+	if !helpers.ValidDirectory(srvcfg.Dir.Temp) {
+		os.Exit(-1)
+	}
+
+	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
+	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
+
+	// Check gin is installed and available
+	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
+	if err != nil {
+		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] using %s", outstr)
+
+	// Check bids-validator is installed
+	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
+	if err != nil {
+		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
+}
+
 func main() {
 
 	// Initialize and read the default server config
@@ -84,32 +110,10 @@ func main() {
 	}
 	defer log.Close()
 
+	startupCheck(srvcfg)
+
 	// Log cli arguments
 	log.Write("[Warmup] cli arguments: %v\n", args)
-
-	// Check whether the required directories are available and accessible
-	if !helpers.ValidDirectory(srvcfg.Dir.Temp) {
-		os.Exit(-1)
-	}
-
-	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
-	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
-
-	// Check gin is installed and available
-	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
-	if err != nil {
-		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] using %s", outstr)
-
-	// Check bids-validator is installed
-	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
-	if err != nil {
-		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
 
 	// Use port if provided.
 	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
