@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const serveralias = "gindev" // change to "gin" for live server
+const serveralias = "gin"
 
 func EnableHook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -33,12 +33,16 @@ func createValidHook(repopath string) {
 		return
 	}
 	config := make(map[string]string)
-	config["url"] = "https://example.com"
+	// TODO: proper host:port
+	// TODO: proper secret
+	config["url"] = fmt.Sprintf("http://ginvalid:3033/validate/bids/%s", repopath)
 	config["content_type"] = "json"
+	config["secret"] = "TODO: Make a proper secret"
 	data := gogs.CreateHookOption{
 		Type:   "gogs",
 		Config: config,
-		Active: false,
+		Active: true,
+		Events: []string{"push"},
 	}
 	res, err := client.Post(fmt.Sprintf("/api/v1/repos/%s/hooks", repopath), data)
 	if err != nil {
@@ -69,4 +73,9 @@ func deleteValidHook(repopath string, id int) {
 	// fmt.Printf("Got response: %s\n", res.Status)
 	// bdy, _ := ioutil.ReadAll(res.Body)
 	// fmt.Println(string(bdy))
+}
+
+func CommCheck(user, pass string) error {
+	client := ginclient.New(serveralias)
+	return client.Login(user, pass, "gin-valid")
 }
