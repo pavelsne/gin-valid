@@ -81,6 +81,7 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
+	// TODO: Simplify/split this function
 	if r.Method != http.MethodPost {
 		// Do nothing
 		return
@@ -98,10 +99,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		// TODO: error out
 	}
 
+	// TODO: Validate secret
 	log.Write("[Info] Hook secret: %s", secret)
 	log.Write("[Info] Commit hash: %s", hookdata.After)
 
-	// TODO: Simplify/split this function
 	vars := mux.Vars(r)
 	service := vars["service"]
 	if !helpers.SupportedValidator(service) {
@@ -116,37 +117,36 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	srvcfg := config.Read()
 
-	var out bytes.Buffer
-	var serr bytes.Buffer
+	// TODO: Check if we need to login. As of now, it's not necessary since the
+	// CommCheck performs a login and the token remains
 
-	// Login with gin servce user, gaining access to public repositories for now
-	cmd := exec.Command(srvcfg.Exec.Gin, "login", "ServiceWaiter")
-	cmd.Stdin = strings.NewReader(fmt.Sprintln(srvcfg.Settings.GPW))
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	if err := cmd.Run(); err != nil {
-		msg := fmt.Sprintf("[Error] logging into gin: '%s, %s'\n", out.String(), serr.String())
+	// TODO add check if a repo is currently being validated. Since the cloning
+	// can potentially take quite some time prohibit running the same
+	// validation at the same time. Could also move this to a mapped go
+	// routine and if the same repo is validated twice, the first occurrence is
+	// stopped and cleaned up while the second starts anew - to make sure its
+	// always the latest state of the repository that is being validated.
+
+	// TODO: Use the payload data to check if the specific commit has already
+	// been validated
+
+	gcl := ginclient.New(serveralias)
+	err = gcl.LoadToken() // TODO: Load user's token instead
+	if err != nil {
+		// TODO: Notify?
+		log.Write("[Error] Auth failed trying to clone '%s': %s", repopath, err.Error())
+		return
+	}
+	log.Write("[Info] Got user %s. Checking repo", gcl.Username)
+	_, err = gcl.GetRepo(repopath)
+	if err != nil {
+		log.Write("[Error] Failed to retrieve info for repository '%s': %s", repopath, err.Error())
+		msg := fmt.Sprintf("[Error] accessing '%s': %s", repopath, err.Error())
 		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
 		return
 	}
 
-	// TODO add check if a repo is currently being validated. since
-	// the cloning can potentially take quite some time prohibit
-	// running the same validation at the same time.
-	// could also move this to a mapped go routine and if the same
-	// repo is validated twice, the first occurrence is stopped and
-	// cleaned up while the second starts anew - to make sure its always
-	// the latest state of the repository that is being validated.
-	cmd = exec.Command(srvcfg.Exec.Gin, "repoinfo", fmt.Sprintf("%s/%s", user, repo))
-	out.Reset()
-	serr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	if err := cmd.Run(); err != nil {
-		msg := fmt.Sprintf("[Error] accessing '%s/%s': '%s, %s'\n", user, repo, out.String(), serr.String())
-		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
-		return
-	}
+	log.Write("[Info] Found repository on server")
 
 	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, "bidsval_")
 	if err != nil {
@@ -158,17 +158,25 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// Enable cleanup once tried and tested
 	defer os.RemoveAll(tmpdir)
 
-	cmd = exec.Command(srvcfg.Exec.Gin, "get", fmt.Sprintf("%s/%s", user, repo))
-	out.Reset()
-	serr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	cmd.Dir = tmpdir
-	if err = cmd.Run(); err != nil {
-		msg := fmt.Sprintf("[Error] running gin get: '%s', '%s'\n", out.String(), serr.String())
-		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
-		return
+	glog.Init("")
+	clonechan := make(chan git.RepoFileStatus)
+	os.Chdir(tmpdir)
+	go gcl.CloneRepo(repopath, clonechan)
+	for stat := range clonechan {
+		if stat.Err != nil {
+			e := stat.Err.(shell.Error)
+			log.Write(e.UError)
+			log.Write(e.Description)
+			log.Write(e.Origin)
+			// Clone failed; return
+			msg := fmt.Sprintf("[Error] running gin get: %s", stat.Err.Error())
+			log.Write(msg)
+			unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+			return
+		}
+		log.Write("[Info] %s %s", stat.State, stat.Progress)
 	}
+	log.Write("[Info] clone complete for '%s'", repopath)
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
@@ -217,15 +225,16 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	args = append(args, valroot)
 
 	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
-	cmd = exec.Command(srvcfg.Exec.BIDS, args...)
+	var out, serr bytes.Buffer
+	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		log.Write("[Error] running bids validation (%s/%s): '%s', '%s', '%s'",
-			valroot, repo, err.Error(), serr.String(), out.String())
+		log.Write("[Error] running bids validation (%s): '%s', '%s', '%s'",
+			valroot, err.Error(), serr.String(), out.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
 		if err != nil {
