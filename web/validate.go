@@ -9,15 +9,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/G-Node/gin-cli/ginclient"
+	glog "github.com/G-Node/gin-cli/ginclient/log"
+	"github.com/G-Node/gin-cli/git"
+	"github.com/G-Node/gin-cli/git/shell"
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources"
+	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
 )
 
@@ -77,15 +81,38 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	service := mux.Vars(r)["service"]
+	if r.Method != http.MethodPost {
+		// Do nothing
+		return
+	}
+
+	secret := r.Header.Get("X-Gogs-Signature")
+
+	var hookdata gogs.PushPayload
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		// TODO: error out
+	}
+	err = json.Unmarshal(b, &hookdata)
+	if err != nil {
+		// TODO: error out
+	}
+
+	log.Write("[Info] Hook secret: %s", secret)
+	log.Write("[Info] Commit hash: %s", hookdata.After)
+
+	// TODO: Simplify/split this function
+	vars := mux.Vars(r)
+	service := vars["service"]
 	if !helpers.SupportedValidator(service) {
 		log.Write("[Error] unsupported validator '%s'\n", service)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	user := mux.Vars(r)["user"]
-	repo := mux.Vars(r)["repo"]
-	log.Write("[Info] '%s' validation for repo '%s/%s'\n", service, user, repo)
+	user := vars["user"]
+	repo := vars["repo"]
+	repopath := fmt.Sprintf("%s/%s", user, repo)
+	log.Write("[Info] '%s' validation for repo '%s'", service, repopath)
 
 	srvcfg := config.Read()
 
