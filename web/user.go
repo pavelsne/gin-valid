@@ -43,6 +43,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		err := client.Login(username, password, "gin-valid")
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
+			http.ServeContent(w, r, "auth failed", time.Now(), bytes.NewReader([]byte("auth failed")))
+			return
 		}
 		// TODO: Store user token in session cookie
 		// Redirect to repo listing
@@ -78,7 +80,10 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := cl.ListRepos(user)
 	if err != nil {
-		fmt.Println(err.Error())
+		errmsg := fmt.Sprintf("404 %s", err.Error())
+		log.ShowWrite(err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		http.ServeContent(w, r, "not found", time.Now(), bytes.NewReader([]byte(errmsg)))
 		return
 	}
 
