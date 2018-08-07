@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
@@ -54,24 +55,32 @@ func startupCheck(srvcfg config.ServerCfg) {
 		os.Exit(-1)
 	}
 
-	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
-	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
+	log.ShowWrite("[Warmup] using temp directory: '%s'", srvcfg.Dir.Temp)
+	log.ShowWrite("[Warmup] using results directory '%s'", srvcfg.Dir.Result)
 
 	// Check gin is installed and available
+	// TODO: Use gin client libs
 	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
 	if err != nil {
-		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
+		log.ShowWrite("[Error] checking gin client '%s'", err.Error())
 		os.Exit(-1)
 	}
-	log.ShowWrite("[Warmup] using %s", outstr)
+	log.ShowWrite("[Warmup] using %s", strings.TrimSpace(outstr))
 
 	// Check bids-validator is installed
 	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
-		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
+		log.ShowWrite("[Error] checking bids-validator '%s'", err.Error())
 		os.Exit(-1)
 	}
-	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
+	log.ShowWrite("[Warmup] using bids-validator v%s", strings.TrimSpace(outstr))
+
+	// Check gin client can reach server (non-fatal)
+	// web.CommCheck("ServiceWaiter", srvcfg.Settings.GPW)
+	err = web.CommCheck("testuser", "a test password 42")
+	if err != nil {
+		log.ShowWrite("[Error] comm check with gin server failed '%s'", err.Error())
+	}
 }
 
 func main() {
@@ -122,11 +131,11 @@ func main() {
 		p := args["--listen"]
 		port = fmt.Sprintf(":%s", p.(string))
 	} else {
-		log.ShowWrite("[Warning] could not parse a valid port number, using default\n")
+		log.ShowWrite("[Warning] could not parse a valid port number, using default")
 	}
-	log.ShowWrite("[Warmup] using port: '%s'\n", port)
+	log.ShowWrite("[Warmup] using port: '%s'", port)
 
-	log.ShowWrite("[Warmup] registering routes\n")
+	log.ShowWrite("[Warmup] registering routes")
 	router := mux.NewRouter()
 	registerRoutes(router)
 
@@ -147,14 +156,14 @@ func main() {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, os.Interrupt)
 		<-sigchan
-		log.ShowWrite("[Info] System interrupt, shutting down server\n")
+		log.ShowWrite("[Info] System interrupt, shutting down server")
 		err := server.Shutdown(context.Background())
 		if err != nil {
-			log.ShowWrite("[Error] on server shutdown: %v\n", err)
+			log.ShowWrite("[Error] on server shutdown: %v", err)
 		}
 	}()
 
-	log.ShowWrite("[Start] Listen and serve\n")
+	log.ShowWrite("[Start] Listen and serve")
 	err = server.ListenAndServe()
 	if err == http.ErrServerClosed {
 		log.Close()
