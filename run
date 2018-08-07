@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
+loc=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 set -euo pipefail
 
 go build
 docker build --tag=ginvalid .
 
-runloc=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
-configdir="${runloc}/srvdata/config"
-configfile="${configdir}/cfg.json"
+# copy init server data to live location
+srvdata="/tmp/gin-valid-data-${RANDOM}"
+cp -a "./srvdata/." "${srvdata}"
 
-srvhome=${runloc}/srvdata
+configdir="${srvdata}/config"
+configfile="${configdir}/cfg.json"
 
 # TODO: If cfg does not exist, create empty
 
-docker run --rm -v ${srvhome}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --link=gindev --name ginvalid -it ginvalid
-
-docker run --rm -v ${srvhome}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --link=gindev --name ginvalid -it --entrypoint="rm -fv /config/client/*.token /config/client/*.key /config/client/known_hosts" ginvalid
+docker run --rm --network=ginbridge -v ${srvdata}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --name ginvalid -it ginvalid
