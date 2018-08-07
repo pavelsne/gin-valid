@@ -99,9 +99,11 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		// TODO: error out
 	}
 
+	commithash := hookdata.After
+
 	// TODO: Validate secret
 	log.Write("[Info] Hook secret: %s", secret)
-	log.Write("[Info] Commit hash: %s", hookdata.After)
+	log.Write("[Info] Commit hash: %s", commithash)
 
 	vars := mux.Vars(r)
 	service := vars["service"]
@@ -177,6 +179,32 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		log.Write("[Info] %s %s", stat.State, stat.Progress)
 	}
 	log.Write("[Info] clone complete for '%s'", repopath)
+
+	// checkout specific commit then download all content
+	log.Write("[Info] git checkout %s", commithash)
+	err = git.Checkout(commithash, nil)
+	if err != nil {
+		log.Write("[Error] failed to checkout commit '%s'", commithash)
+		return
+	}
+
+	log.Write("[Info] Downloading content")
+	getcontentchan := make(chan git.RepoFileStatus)
+	go gcl.GetContent([]string{"."}, getcontentchan)
+	for stat := range getcontentchan {
+		if stat.Err != nil {
+			e := stat.Err.(shell.Error)
+			log.Write(e.UError)
+			log.Write(e.Description)
+			log.Write(e.Origin)
+			msg := fmt.Sprintf("[Error] running gin get-content: %s", stat.Err.Error())
+			log.Write(msg)
+			unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+			return
+		}
+		log.Write("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
+	}
+	log.Write("[Info] get-content complete")
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
