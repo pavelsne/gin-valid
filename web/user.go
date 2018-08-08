@@ -2,18 +2,62 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
+	"github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
+	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
 )
 
+var sessions []web.UserToken
+
+func doLogin(username, password string) error {
+	clientID := "gin-valid"
+	gincl := ginclient.New(serveralias)
+	glog.Init("")
+	glog.Write("Performing login from gin-valid")
+	err := gincl.Login(username, password, "gin-valid")
+	if err != nil {
+		return err
+	}
+	tokenCreate := &gogs.CreateAccessTokenOption{Name: clientID}
+	address := fmt.Sprintf("/api/v1/users/%s/tokens", username)
+	res, err := gincl.PostBasicAuth(address, username, password, tokenCreate)
+	if err != nil {
+		return err // return error from PostBasicAuth directly
+	}
+	if res.StatusCode != http.StatusCreated {
+		return fmt.Errorf(res.Status)
+	}
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	log.Write("Got response: %s", res.Status)
+	token := ginclient.AccessToken{}
+	err = json.Unmarshal(data, &token)
+	if err != nil {
+		return err
+	}
+	gincl.Username = username
+	gincl.Token = token.Sha1
+	log.Write("Login successful. Username: %s", username)
+
+	sessions = append(sessions, gincl.UserToken)
+	return nil
+}
+
+// Login renders the login form and logs in the user to the GIN server, storing
+// a session token and key.
 func Login(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodGet {
@@ -37,16 +81,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form["username"][0]
 		password := r.Form["password"][0]
-		client := ginclient.New(serveralias)
-		glog.Init("")
-		glog.Write("Performing login from gin-valid")
-		err := client.Login(username, password, "gin-valid")
+		err := doLogin(username, password)
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
 			http.ServeContent(w, r, "auth failed", time.Now(), bytes.NewReader([]byte("auth failed")))
 			return
 		}
-		// TODO: Store user token in session cookie
+
 		// Redirect to repo listing
 		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
 	}
@@ -65,6 +106,9 @@ const repostmpl = `
 	{{ end }}
 `
 
+// ListRepos queries the GIN server for a list of repositories owned (or
+// accessible) by a given user and renders the page which displays the
+// repositories and their validation status.
 func ListRepos(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		return
