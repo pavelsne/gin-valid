@@ -68,10 +68,10 @@ func startupCheck(srvcfg config.ServerCfg) {
 
 	// Check gin client can reach server (non-fatal)
 	// web.CommCheck("ServiceWaiter", srvcfg.Settings.GPW)
-	err = web.CommCheck("testuser", "a test password 42")
-	if err != nil {
-		log.ShowWrite("[Error] comm check with gin server failed '%s'", err.Error())
-	}
+	// err = web.CommCheck("testuser", "a test password 42")
+	// if err != nil {
+	// 	log.ShowWrite("[Error] comm check with gin server failed '%s'", err.Error())
+	// }
 }
 
 func main() {

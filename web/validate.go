@@ -132,14 +132,12 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: Use the payload data to check if the specific commit has already
 	// been validated
 
+	// user is the owner of the repository; using it here is temporary, since
+	// we should instead be reading the username from the session cookie
 	gcl := ginclient.New(serveralias)
-	err = gcl.LoadToken() // TODO: Load user's token instead
-	if err != nil {
-		// TODO: Notify?
-		log.Write("[Error] Auth failed trying to clone '%s': %s", repopath, err.Error())
-		return
-	}
+	gcl.UserToken = sessions[user]
 	log.Write("[Info] Got user %s. Checking repo", gcl.Username)
+	// TODO: create a temporary key pair before cloning
 	_, err = gcl.GetRepo(repopath)
 	if err != nil {
 		log.Write("[Error] Failed to retrieve info for repository '%s': %s", repopath, err.Error())

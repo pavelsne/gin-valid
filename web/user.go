@@ -18,7 +18,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var sessions []web.UserToken
+var sessions = make(map[string]web.UserToken)
 
 func doLogin(username, password string) error {
 	clientID := "gin-valid"
@@ -52,7 +52,7 @@ func doLogin(username, password string) error {
 	gincl.Token = token.Sha1
 	log.Write("Login successful. Username: %s", username)
 
-	sessions = append(sessions, gincl.UserToken)
+	sessions[username] = gincl.UserToken
 	return nil
 }
 

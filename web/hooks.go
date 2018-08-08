@@ -19,19 +19,15 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	createValidHook(fmt.Sprintf("%s/%s", user, repo))
+	createValidHook(fmt.Sprintf("%s/%s", user, repo), user)
 }
 
 // TODO: Return error
-func createValidHook(repopath string) {
+func createValidHook(repopath, username string) {
 	log.Write("Adding hook to %s\n", repopath)
 
 	client := ginclient.New(serveralias)
-	err := client.LoadToken()
-	if err != nil {
-		log.Write("[error] failed to load token %s\n", err.Error())
-		return
-	}
+	client.UserToken = sessions[username]
 	config := make(map[string]string)
 	// TODO: proper host:port
 	// TODO: proper secret
@@ -73,9 +69,4 @@ func deleteValidHook(repopath string, id int) {
 	// fmt.Printf("Got response: %s\n", res.Status)
 	// bdy, _ := ioutil.ReadAll(res.Body)
 	// fmt.Println(string(bdy))
-}
-
-func CommCheck(user, pass string) error {
-	client := ginclient.New(serveralias)
-	return client.Login(user, pass, "gin-valid")
 }
