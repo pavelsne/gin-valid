@@ -58,17 +58,8 @@ func startupCheck(srvcfg config.ServerCfg) {
 	log.ShowWrite("[Warmup] using temp directory: '%s'", srvcfg.Dir.Temp)
 	log.ShowWrite("[Warmup] using results directory '%s'", srvcfg.Dir.Result)
 
-	// Check gin is installed and available
-	// TODO: Use gin client libs
-	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
-	if err != nil {
-		log.ShowWrite("[Error] checking gin client '%s'", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] using %s", strings.TrimSpace(outstr))
-
 	// Check bids-validator is installed
-	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
+	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.BIDS)
 	if err != nil {
 		log.ShowWrite("[Error] checking bids-validator '%s'", err.Error())
 		os.Exit(-1)

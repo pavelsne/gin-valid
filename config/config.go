@@ -7,7 +7,6 @@ import (
 
 // Executables used by the server.
 type Executables struct {
-	Gin  string `json:"gin"`
 	BIDS string `json:"bids"`
 }
 
@@ -54,7 +53,6 @@ var ginValidDefaultServer = ServerCfg{
 		Validators: []string{"bids"},
 	},
 	Executables{
-		Gin:  "gin",
 		BIDS: "bids-validator",
 	},
 	Directories{

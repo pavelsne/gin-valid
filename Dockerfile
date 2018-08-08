@@ -2,7 +2,6 @@ FROM ubuntu:18.04
 
 RUN apt update
 RUN apt install -y \
-    wget \
     git \
     git-annex \
     golang \
@@ -10,15 +9,6 @@ RUN apt install -y \
     npm
 
 RUN npm install -g bids-validator
-
-RUN mkdir /go
-ENV GOPATH /go
-
-RUN mkdir /gin-cli
-WORKDIR /gin-cli
-RUN wget https://web.gin.g-node.org/G-Node/gin-cli-releases/raw/master/gin-cli-latest-linux-amd64.tar.gz
-RUN tar -xf gin-cli-latest-linux-amd64.tar.gz
-RUN ln -s /gin-cli/gin /bin/gin
 
 # RUN mkdir -p /go/src/github.com/G-Node
 # ADD . /go/src/github.com/G-Node/gin-valid
@@ -37,8 +27,7 @@ VOLUME ["/gin-valid/"]
 ENV GINVALIDHOME /gin-valid/
 ENV GIN_CONFIG_DIR /gin-valid/config/client
 
-COPY ./gin-valid .
-RUN mkdir -p /root/.config/g-node/gin/
+COPY ./gin-valid /usr/local/bin/.
 
-ENTRYPOINT ./gin-valid --config=/config/cfg.json
+ENTRYPOINT gin-valid --config=/config/cfg.json
 EXPOSE 3033
