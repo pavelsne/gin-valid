@@ -108,14 +108,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validateHookSecret(b, secret) {
-		log.Write("[Error] auth failed - bad secret")
+		log.Write("[Error] authorisation failed: bad secret")
 		fail(http.StatusBadRequest, "bad request")
 		return
 	}
 
 	commithash := hookdata.After
 
-	// TODO: Validate secret
 	log.Write("[Info] Hook secret: %s", secret)
 	log.Write("[Info] Commit hash: %s", commithash)
 

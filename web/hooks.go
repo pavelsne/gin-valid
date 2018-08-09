@@ -60,6 +60,9 @@ func validateHookSecret(data []byte, secret string) bool {
 }
 
 func createValidHook(repopath string, session *usersession) error {
+	// TODO: AVOID DUPLICATES:
+	//   - If it's already hooked and we have it on record, do nothing
+	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
 	log.Write("Adding hook to %s\n", repopath)
 
 	client := ginclient.New(serveralias)
