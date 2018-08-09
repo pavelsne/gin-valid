@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -52,12 +53,6 @@ type Validationcfg struct {
 	} `yaml:"bidsconfig"`
 }
 
-// unavailable creates a log entry and writes the unavailable badge to the responseWriter.
-func unavailable(w http.ResponseWriter, r *http.Request, badge string, message string) {
-	log.Write(message)
-	http.ServeContent(w, r, badge, time.Now(), bytes.NewReader([]byte(resources.BidsUnavailable)))
-}
-
 // handleValidationConfig unmarshalles a yaml config file
 // from file and returns the resulting Validationcfg struct.
 func handleValidationConfig(cfgpath string) (Validationcfg, error) {
@@ -81,9 +76,18 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
+
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
+
 	// TODO: Simplify/split this function
 	if r.Method != http.MethodPost {
 		// Do nothing
+		log.Write("[Error] no post request: %s", r.Method)
+		// TODO: Redirect to results
 		return
 	}
 
@@ -92,18 +96,20 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	var hookdata gogs.PushPayload
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		// TODO: error out
+		log.Write("[Error] failed to parse hook payload")
+		fail(http.StatusBadRequest, "bad request")
 		return
 	}
 	err = json.Unmarshal(b, &hookdata)
 	if err != nil {
-		// TODO: error out
+		log.Write("[Error] failed to parse hook payload")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("bad request"))
 		return
 	}
 	if !validateHookSecret(b, secret) {
 		log.Write("[Error] auth failed - bad secret")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("bad secret"))
+		fail(http.StatusBadRequest, "bad request")
 		return
 	}
 
@@ -116,8 +122,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	service := vars["service"]
 	if !helpers.SupportedValidator(service) {
-		log.Write("[Error] unsupported validator '%s'\n", service)
-		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
+		fail(http.StatusNotFound, "unsupported validator")
 		return
 	}
 	user := vars["user"]
@@ -141,7 +146,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	ut, ok := hookregs[repopath]
 	if !ok {
-
+		// We don't have a valid token for this repository: can't clone
+		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
+		fail(http.StatusUnauthorized, msg)
+		return
 	}
 	log.Write("[Info] Using user %s", ut.Username)
 	gcl := ginclient.New(serveralias)
@@ -150,9 +158,13 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: create a temporary key pair before cloning
 	_, err = gcl.GetRepo(repopath)
 	if err != nil {
-		log.Write("[Error] Failed to retrieve info for repository '%s': %s", repopath, err.Error())
-		msg := fmt.Sprintf("[Error] accessing '%s': %s", repopath, err.Error())
-		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+		code, converr := strconv.Atoi(err.Error()[:3])
+		if converr != nil {
+			// First three chars should be error code. If not, default to NotFound
+			code = http.StatusNotFound
+		}
+		msg := fmt.Sprintf("accessing '%s': %s", repopath, err.Error())
+		fail(code, msg)
 		return
 	}
 
@@ -160,13 +172,23 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, "bidsval_")
 	if err != nil {
-		msg := fmt.Sprintf("[Error] creating temp gin directory: '%s'\n", err.Error())
-		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+		msg := fmt.Sprintf("creating temp gin directory: '%s'\n", err.Error())
+		fail(http.StatusInternalServerError, msg)
 		return
 	}
 
 	// Enable cleanup once tried and tested
 	defer os.RemoveAll(tmpdir)
+
+	// TODO: if (annexed) content is not available yet, wait and retry.  We
+	// would have to set a max timeout for this.  The issue is that when a user
+	// does a 'gin upload' a push happens immediately and the hook is
+	// triggered, but annexed content is only transferred after the push and
+	// could take a while (hours?). The validation service should try to
+	// download content after the transfer is complete, or should keep retrying
+	// until it's available, with a timeout. We could also make it more
+	// efficient by only downloading the content in the directories which are
+	// specified in the validator config (if it exists).
 
 	glog.Init("")
 	clonechan := make(chan git.RepoFileStatus)
@@ -175,13 +197,11 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	for stat := range clonechan {
 		if stat.Err != nil {
 			e := stat.Err.(shell.Error)
-			log.Write(e.UError)
-			log.Write(e.Description)
-			log.Write(e.Origin)
-			// Clone failed; return
-			msg := fmt.Sprintf("[Error] running gin get: %s", stat.Err.Error())
-			log.Write(msg)
-			unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+			log.Write("[Error] %s", e.UError)
+			log.Write("[Error] %s", e.Description)
+			log.Write("[Error] %s", e.Origin)
+			fail(http.StatusInternalServerError, "failed to fetch repository data")
+
 			return
 		}
 		log.Write("[Info] %s %s", stat.State, stat.Progress)
@@ -192,7 +212,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	log.Write("[Info] git checkout %s", commithash)
 	err = git.Checkout(commithash, nil)
 	if err != nil {
-		log.Write("[Error] failed to checkout commit '%s'", commithash)
+		log.Write("[Error] failed to checkout commit '%s': %s", commithash, err.Error())
+		fail(http.StatusInternalServerError, "failed to fetch repository data")
 		return
 	}
 
@@ -202,12 +223,10 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	for stat := range getcontentchan {
 		if stat.Err != nil {
 			e := stat.Err.(shell.Error)
-			log.Write(e.UError)
-			log.Write(e.Description)
-			log.Write(e.Origin)
-			msg := fmt.Sprintf("[Error] running gin get-content: %s", stat.Err.Error())
-			log.Write(msg)
-			unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+			log.Write("[Error] %s", e.UError)
+			log.Write("[Error] %s", e.Description)
+			log.Write("[Error] %s", e.Origin)
+			fail(http.StatusInternalServerError, "failed to fetch repository data")
 			return
 		}
 		log.Write("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
@@ -219,8 +238,8 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	resdir := filepath.Join(srvcfg.Dir.Result, "bids", user, repo, srvcfg.Label.ResultsFolder)
 	err = os.MkdirAll(resdir, os.ModePerm)
 	if err != nil {
-		msg := fmt.Sprintf("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
-		unavailable(w, r, srvcfg.Label.ResultsBadge, msg)
+		log.Write("[Error] creating '%s/%s' results folder: %s", user, repo, err.Error())
+		fail(http.StatusInternalServerError, "failed to generate results")
 		return
 	}
 

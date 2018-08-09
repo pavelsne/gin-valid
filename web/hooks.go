@@ -1,13 +1,11 @@
 package web
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-valid/log"
@@ -21,6 +19,11 @@ const (
 )
 
 func EnableHook(w http.ResponseWriter, r *http.Request) {
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
 	if r.Method != "GET" {
 		return
 	}
@@ -30,24 +33,25 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	sessionid, err := r.Cookie("gin-valid-session")
 	if err != nil {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		w.WriteHeader(http.StatusUnauthorized)
-		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(msg)))
+		fail(http.StatusUnauthorized, msg)
+		return
 	}
 
 	session, ok := sessions[sessionid.Value]
 	if !ok {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		w.WriteHeader(http.StatusUnauthorized)
-		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(msg)))
+		fail(http.StatusUnauthorized, msg)
+		return
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	err = createValidHook(repopath, session)
 	if err != nil {
-		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(err.Error())))
+		fail(http.StatusUnauthorized, err.Error())
 		return
 	}
 	msg := fmt.Sprintf("Successfully created hook for %s", repopath)
-	http.ServeContent(w, r, "success", time.Now(), bytes.NewReader([]byte(msg)))
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(msg))
 }
 
 func validateHookSecret(data []byte, secret string) bool {

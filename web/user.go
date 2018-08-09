@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -70,26 +69,27 @@ func doLogin(username, password string) (*usersession, error) {
 	return &usersession{sessionid, gincl.UserToken}, nil
 }
 
-func setCookie(w *http.ResponseWriter, username string) {
-}
-
 // Login renders the login form and logs in the user to the GIN server, storing
 // a session token and key.
 func Login(w http.ResponseWriter, r *http.Request) {
-
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
 	if r.Method == http.MethodGet {
 		log.Write("Login page")
 		tmpl := template.New("layout")
 		tmpl, err := tmpl.Parse(templates.Layout)
 		if err != nil {
 			log.Write("[Error] failed to parse html layout page")
-			http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+			fail(http.StatusInternalServerError, "something went wrong")
 			return
 		}
 		tmpl, err = tmpl.Parse(templates.Login)
 		if err != nil {
 			log.Write("[Error] failed to render login page")
-			http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+			fail(http.StatusInternalServerError, "something went wrong")
 			return
 		}
 		tmpl.Execute(w, nil)
@@ -101,7 +101,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		session, err := doLogin(username, password)
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
-			http.ServeContent(w, r, "auth failed", time.Now(), bytes.NewReader([]byte("auth failed")))
+			fail(http.StatusUnauthorized, "authentication failed")
 			return
 		}
 
@@ -131,6 +131,11 @@ const repostmpl = `
 // accessible) by a given user and renders the page which displays the
 // repositories and their validation status.
 func ListRepos(w http.ResponseWriter, r *http.Request) {
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
 	if r.Method != http.MethodGet {
 		return
 	}
@@ -145,10 +150,9 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := cl.ListRepos(user)
 	if err != nil {
-		errmsg := fmt.Sprintf("404 %s", err.Error())
-		log.ShowWrite(err.Error())
+		log.ShowWrite("[Error] ListRepos failed: %s", err.Error())
 		w.WriteHeader(http.StatusNotFound)
-		http.ServeContent(w, r, "not found", time.Now(), bytes.NewReader([]byte(errmsg)))
+		w.Write([]byte("not found"))
 		return
 	}
 
@@ -157,13 +161,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		fail(http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(repostmpl)
 	if err != nil {
 		log.Write("[Error] failed to render login page")
-		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		fail(http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl.Execute(w, &repos)
