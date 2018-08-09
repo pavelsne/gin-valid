@@ -106,7 +106,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		sessions[session.sessionID] = session
-		sessions[session.Username] = session
 		cookie := http.Cookie{Name: "gin-valid-session", Value: session.sessionID, Expires: cookieExp()}
 		http.SetCookie(w, &cookie)
 		// Redirect to repo listing
