@@ -93,10 +93,18 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		// TODO: error out
+		return
 	}
 	err = json.Unmarshal(b, &hookdata)
 	if err != nil {
 		// TODO: error out
+		return
+	}
+	if !validateHookSecret(b, secret) {
+		log.Write("[Error] auth failed - bad secret")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("bad secret"))
+		return
 	}
 
 	commithash := hookdata.After
@@ -119,9 +127,6 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 
 	srvcfg := config.Read()
 
-	// TODO: Check if we need to login. As of now, it's not necessary since the
-	// CommCheck performs a login and the token remains
-
 	// TODO add check if a repo is currently being validated. Since the cloning
 	// can potentially take quite some time prohibit running the same
 	// validation at the same time. Could also move this to a mapped go
@@ -132,10 +137,15 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: Use the payload data to check if the specific commit has already
 	// been validated
 
-	// user is the owner of the repository; using it here is temporary, since
-	// we should instead be reading the username from the session cookie
+	// get the username + token from the registered hooks map
+
+	ut, ok := hookregs[repopath]
+	if !ok {
+
+	}
+	log.Write("[Info] Using user %s", ut.Username)
 	gcl := ginclient.New(serveralias)
-	gcl.UserToken = sessions[user]
+	gcl.UserToken = ut
 	log.Write("[Info] Got user %s. Checking repo", gcl.Username)
 	// TODO: create a temporary key pair before cloning
 	_, err = gcl.GetRepo(repopath)

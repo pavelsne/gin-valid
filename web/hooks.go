@@ -2,6 +2,9 @@ package web
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,7 +15,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const serveralias = "gin"
+const (
+	serveralias = "gin"
+	hooksecret  = "omg so sekrit"
+)
 
 func EnableHook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -21,23 +27,47 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	err := createValidHook(fmt.Sprintf("%s/%s", user, repo), user)
+	sessionid, err := r.Cookie("gin-valid-session")
+	if err != nil {
+		msg := fmt.Sprintf("Hook creation failed: unauthorised")
+		w.WriteHeader(http.StatusUnauthorized)
+		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(msg)))
+	}
+
+	session, ok := sessions[sessionid.Value]
+	if !ok {
+		msg := fmt.Sprintf("Hook creation failed: unauthorised")
+		w.WriteHeader(http.StatusUnauthorized)
+		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(msg)))
+	}
+	repopath := fmt.Sprintf("%s/%s", user, repo)
+	err = createValidHook(repopath, session)
 	if err != nil {
 		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(err.Error())))
+		return
 	}
+	msg := fmt.Sprintf("Successfully created hook for %s", repopath)
+	http.ServeContent(w, r, "success", time.Now(), bytes.NewReader([]byte(msg)))
 }
 
-func createValidHook(repopath, username string) error {
+func validateHookSecret(data []byte, secret string) bool {
+	sig := hmac.New(sha256.New, []byte(hooksecret))
+	sig.Write(data)
+	signature := hex.EncodeToString(sig.Sum(nil))
+	return signature == secret
+}
+
+func createValidHook(repopath string, session *usersession) error {
 	log.Write("Adding hook to %s\n", repopath)
 
 	client := ginclient.New(serveralias)
-	client.UserToken = sessions[username]
+	client.UserToken = session.UserToken
 	config := make(map[string]string)
 	// TODO: proper host:port
 	// TODO: proper secret
 	config["url"] = fmt.Sprintf("http://ginvalid:3033/validate/bids/%s", repopath)
 	config["content_type"] = "json"
-	config["secret"] = "TODO: Make a proper secret"
+	config["secret"] = hooksecret
 	data := gogs.CreateHookOption{
 		Type:   "gogs",
 		Config: config,
@@ -51,10 +81,11 @@ func createValidHook(repopath, username string) error {
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		log.Write("[error] non-OK response: %s\n", res.Status)
 		return fmt.Errorf("Hook creation failed: %s", res.Status)
 	}
+	hookregs[repopath] = session.UserToken
 	return nil
 }
 

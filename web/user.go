@@ -18,9 +18,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var sessions = make(map[string]web.UserToken)
+type usersession struct {
+	sessionID string
+	web.UserToken
+}
 
-func doLogin(username, password string) error {
+var (
+	sessions = make(map[string]*usersession)
+	hookregs = make(map[string]web.UserToken)
+)
+
+func cookieExp() time.Time {
+	return time.Now().Add(7 * 24 * time.Hour)
+}
+
+func doLogin(username, password string) (*usersession, error) {
 	// TODO: remove this function when it becomes a standalone function in gin-cli
 	// see https://github.com/G-Node/gin-cli/issues/212
 	clientID := "gin-valid"
@@ -29,33 +41,36 @@ func doLogin(username, password string) error {
 	glog.Write("Performing login from gin-valid")
 	err := gincl.Login(username, password, "gin-valid")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tokenCreate := &gogs.CreateAccessTokenOption{Name: clientID}
 	address := fmt.Sprintf("/api/v1/users/%s/tokens", username)
 	res, err := gincl.PostBasicAuth(address, username, password, tokenCreate)
 	if err != nil {
-		return err // return error from PostBasicAuth directly
+		return nil, err // return error from PostBasicAuth directly
 	}
 	if res.StatusCode != http.StatusCreated {
-		return fmt.Errorf(res.Status)
+		return nil, fmt.Errorf(res.Status)
 	}
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Write("Got response: %s", res.Status)
 	token := ginclient.AccessToken{}
 	err = json.Unmarshal(data, &token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	gincl.Username = username
 	gincl.Token = token.Sha1
 	log.Write("Login successful. Username: %s", username)
 
-	sessions[username] = gincl.UserToken
-	return nil
+	sessionid := "unique session-id " + username
+	return &usersession{sessionid, gincl.UserToken}, nil
+}
+
+func setCookie(w *http.ResponseWriter, username string) {
 }
 
 // Login renders the login form and logs in the user to the GIN server, storing
@@ -83,13 +98,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form["username"][0]
 		password := r.Form["password"][0]
-		err := doLogin(username, password)
+		session, err := doLogin(username, password)
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
 			http.ServeContent(w, r, "auth failed", time.Now(), bytes.NewReader([]byte("auth failed")))
 			return
 		}
 
+		sessions[session.sessionID] = session
+		sessions[session.Username] = session
+		cookie := http.Cookie{Name: "gin-valid-session", Value: session.sessionID, Expires: cookieExp()}
+		http.SetCookie(w, &cookie)
 		// Redirect to repo listing
 		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
 	}
