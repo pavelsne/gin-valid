@@ -21,6 +21,8 @@ import (
 var sessions = make(map[string]web.UserToken)
 
 func doLogin(username, password string) error {
+	// TODO: remove this function when it becomes a standalone function in gin-cli
+	// see https://github.com/G-Node/gin-cli/issues/212
 	clientID := "gin-valid"
 	gincl := ginclient.New(serveralias)
 	glog.Init("")

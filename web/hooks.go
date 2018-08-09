@@ -1,8 +1,10 @@
 package web
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-valid/log"
@@ -19,11 +21,13 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	createValidHook(fmt.Sprintf("%s/%s", user, repo), user)
+	err := createValidHook(fmt.Sprintf("%s/%s", user, repo), user)
+	if err != nil {
+		http.ServeContent(w, r, "hook-create failed", time.Now(), bytes.NewReader([]byte(err.Error())))
+	}
 }
 
-// TODO: Return error
-func createValidHook(repopath, username string) {
+func createValidHook(repopath, username string) error {
 	log.Write("Adding hook to %s\n", repopath)
 
 	client := ginclient.New(serveralias)
@@ -42,13 +46,16 @@ func createValidHook(repopath, username string) {
 	}
 	res, err := client.Post(fmt.Sprintf("/api/v1/repos/%s/hooks", repopath), data)
 	if err != nil {
-		log.Write("[error] bad response from server %s\n", err.Error())
-		return
+		log.Write("[error] failed to post: %s\n", err.Error())
+		return fmt.Errorf("Hook creation failed: %s", err.Error())
 	}
 	defer res.Body.Close()
-	// log.Write("Got response: %s\n", res.Status)
-	// bdy, _ := ioutil.ReadAll(res.Body)
-	// fmt.Println(string(bdy))
+
+	if res.StatusCode != http.StatusOK {
+		log.Write("[error] non-OK response: %s\n", res.Status)
+		return fmt.Errorf("Hook creation failed: %s", res.Status)
+	}
+	return nil
 }
 
 func deleteValidHook(repopath string, id int) {
