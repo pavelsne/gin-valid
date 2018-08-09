@@ -49,9 +49,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		fail(http.StatusUnauthorized, err.Error())
 		return
 	}
-	msg := fmt.Sprintf("Successfully created hook for %s", repopath)
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(msg))
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s", session.Username), http.StatusFound)
 }
 
 func validateHookSecret(data []byte, secret string) bool {
