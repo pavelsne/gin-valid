@@ -113,12 +113,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO: Stable access order of Hooks map
 const repostmpl = `
 	{{ define "content" }}
 	<br/><br/>
 	<div>
 	{{ range . }}
 	<div><b><a href=/repos/{{.FullName}}/enable>{{.FullName}}</a></b></div>
+	<div><b>Hooks</b>:<br>
+	{{ range $key, $value := .Hooks }}
+		{{ $key }}: {{ $value }}
+	{{ end }}
+	</div>
 	<div>{{.Description}} {{.Website}}</div>
 	<hr>
 	{{ end }}
@@ -147,7 +153,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Server configuration:")
 	fmt.Println(cl.Host)
 
-	repos, err := cl.ListRepos(user)
+	userrepos, err := cl.ListRepos(user)
 	if err != nil {
 		log.ShowWrite("[Error] ListRepos failed: %s", err.Error())
 		w.WriteHeader(http.StatusNotFound)
@@ -155,7 +161,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Got %d repos\n", len(repos))
+	fmt.Printf("Got %d repos\n", len(userrepos))
 	tmpl := template.New("layout")
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
@@ -168,6 +174,20 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		log.Write("[Error] failed to render login page")
 		fail(http.StatusInternalServerError, "something went wrong")
 		return
+	}
+	type repoHooksInfo struct {
+		gogs.Repository
+		Hooks map[string]bool
+	}
+
+	repos := make([]repoHooksInfo, len(userrepos))
+	// TODO: For each supported hook type, check if it's active
+	for idx, r := range userrepos {
+		bids := false
+		if _, ok := hookregs[r.FullName]; ok {
+			bids = true
+		}
+		repos[idx] = repoHooksInfo{r, map[string]bool{"BIDS": bids, "NIX": false}}
 	}
 	tmpl.Execute(w, &repos)
 }
