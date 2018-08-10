@@ -125,25 +125,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: Stable access order of Hooks map
-const repostmpl = `
-	{{ define "content" }}
-	<br/><br/>
-	<div>
-	{{ range . }}
-	<div><b><a href=/repos/{{.FullName}}/enable>{{.FullName}}</a></b></div>
-	<div><b>Hooks</b>:<br>
-	{{ range $key, $value := .Hooks }}
-		{{ $key }}: {{ $value }}
-	{{ end }}
-	</div>
-	<div>{{.Description}} {{.Website}}</div>
-	<hr>
-	{{ end }}
-	</div>
-	{{ end }}
-`
-
 func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (*usersession, error) {
 	cookie, err := r.Cookie("gin-valid-session")
 	if err != nil {
@@ -201,7 +182,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		fail(http.StatusInternalServerError, "something went wrong")
 		return
 	}
-	tmpl, err = tmpl.Parse(repostmpl)
+	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
 		log.Write("[Error] failed to render login page")
 		fail(http.StatusInternalServerError, "something went wrong")
@@ -222,4 +203,63 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		repos[idx] = repoHooksInfo{r, map[string]bool{"BIDS": bids, "NIX": false}}
 	}
 	tmpl.Execute(w, &repos)
+}
+func Repo(w http.ResponseWriter, r *http.Request) {
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
+	if r.Method != http.MethodGet {
+		return
+	}
+
+	session, err := getSessionOrRedirect(w, r)
+	if err != nil {
+		return
+	}
+
+	vars := mux.Vars(r)
+	user := vars["user"]
+	repo := vars["repo"]
+	repopath := fmt.Sprintf("%s/%s", user, repo)
+	cl := ginclient.New(serveralias)
+	cl.UserToken = session.UserToken
+	fmt.Printf("Requesting repository info %s\n", repopath)
+	fmt.Printf("Server alias: %s\n", serveralias)
+	fmt.Println("Server configuration:")
+	fmt.Println(cl.Host)
+
+	repoinfo, err := cl.GetRepo(repopath)
+	if err != nil {
+		log.ShowWrite("[Error] Repo info failed: %s", err.Error())
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("not found"))
+		return
+	}
+
+	tmpl := template.New("layout")
+	tmpl, err = tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] failed to parse html layout page")
+		fail(http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.RepoPage)
+	if err != nil {
+		log.Write("[Error] failed to render repository page")
+		fail(http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	type repoHooksInfo struct {
+		gogs.Repository
+		Hooks map[string]bool
+	}
+
+	bids := false
+	if _, ok := hookregs[repoinfo.FullName]; ok {
+		bids = true
+	}
+	repohi := repoHooksInfo{repoinfo, map[string]bool{"BIDS": bids, "NIX": false}}
+	tmpl.Execute(w, &repohi)
 }

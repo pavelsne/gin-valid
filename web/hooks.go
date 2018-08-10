@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-valid/log"
@@ -30,6 +31,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
+	service := vars["service"]
 	sessionid, err := r.Cookie("gin-valid-session")
 	if err != nil {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
@@ -44,7 +46,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
-	err = createValidHook(repopath, session)
+	err = createValidHook(repopath, service, session)
 	if err != nil {
 		fail(http.StatusUnauthorized, err.Error())
 		return
@@ -59,18 +61,18 @@ func validateHookSecret(data []byte, secret string) bool {
 	return signature == secret
 }
 
-func createValidHook(repopath string, session *usersession) error {
+func createValidHook(repopath string, service string, session *usersession) error {
 	// TODO: AVOID DUPLICATES:
 	//   - If it's already hooked and we have it on record, do nothing
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
-	log.Write("Adding hook to %s\n", repopath)
+	log.Write("Adding %s hook to %s\n", service, repopath)
 
 	client := ginclient.New(serveralias)
 	client.UserToken = session.UserToken
 	config := make(map[string]string)
 	// TODO: proper host:port
 	// TODO: proper secret
-	config["url"] = fmt.Sprintf("http://ginvalid:3033/validate/bids/%s", repopath)
+	config["url"] = strings.ToLower(fmt.Sprintf("http://ginvalid:3033/validate/%s/%s", service, repopath))
 	config["content_type"] = "json"
 	config["secret"] = hooksecret
 	data := gogs.CreateHookOption{
