@@ -30,6 +30,7 @@ type Denotations struct {
 // Settings provide the default server settings.
 // "Validators" currently only supports "BIDS".
 type Settings struct {
+	RootURL    string   `json:"rooturl"`
 	Port       string   `json:"port"`
 	LogSize    int      `json:"logsize"`
 	GPW        string   `json:"gpw"`

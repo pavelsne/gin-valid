@@ -2,20 +2,11 @@ package helpers
 
 import "strconv"
 
-// IsValidPort checks whether a handed in interface
-// can be parsed into a valid server port number.
-func IsValidPort(port interface{}) bool {
-	if port == nil {
-		return false
-	}
-	checkPort, ok := port.(string)
-	if !ok || !isNumeric(checkPort) {
-		return false
-	}
-	if len(checkPort) != 4 {
-		return false
-	}
-	return true
+// IsValidPort checks whether a provided port value can be parsed into a valid
+// server port number (uint16)
+func IsValidPort(port string) bool {
+	_, err := strconv.ParseUint(port, 10, 16)
+	return err == nil
 }
 
 func isNumeric(str string) bool {

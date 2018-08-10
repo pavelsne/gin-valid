@@ -118,10 +118,13 @@ func main() {
 	log.Write("[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
-	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
-	if helpers.IsValidPort(args["--listen"]) {
-		p := args["--listen"]
-		port = fmt.Sprintf(":%s", p.(string))
+	port := srvcfg.Settings.Port
+	if argport := args["--listen"]; argport != nil {
+		port = argport.(string)
+	}
+
+	if helpers.IsValidPort(port) {
+		port = fmt.Sprintf(":%s", port)
 	} else {
 		log.ShowWrite("[Warning] could not parse a valid port number, using default")
 	}

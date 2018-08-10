@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
+	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/log"
 	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
@@ -67,17 +68,18 @@ func createValidHook(repopath string, service string, session *usersession) erro
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
 	log.Write("Adding %s hook to %s\n", service, repopath)
 
+	gvconfig := config.Read()
 	client := ginclient.New(serveralias)
 	client.UserToken = session.UserToken
-	config := make(map[string]string)
+	hookconfig := make(map[string]string)
 	// TODO: proper host:port
 	// TODO: proper secret
-	config["url"] = strings.ToLower(fmt.Sprintf("http://ginvalid:3033/validate/%s/%s", service, repopath))
-	config["content_type"] = "json"
-	config["secret"] = hooksecret
+	hookconfig["url"] = strings.ToLower(fmt.Sprintf("%s:%s/validate/%s/%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port, service, repopath))
+	hookconfig["content_type"] = "json"
+	hookconfig["secret"] = hooksecret
 	data := gogs.CreateHookOption{
 		Type:   "gogs",
-		Config: config,
+		Config: hookconfig,
 		Active: true,
 		Events: []string{"push"},
 	}
