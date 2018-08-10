@@ -154,7 +154,16 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	gcl := ginclient.New(serveralias)
 	gcl.UserToken = ut
 	log.Write("[Info] Got user %s. Checking repo", gcl.Username)
-	// TODO: create a temporary key pair before cloning
+	// TODO: make key with unique name in tmp and delete when done
+	// Currently, multiple simultaneous validations will override each-others keys
+	err = gcl.MakeSessionKey()
+	if err != nil {
+		log.Write("[error] failed to create session key")
+		msg := fmt.Sprintf("failed to clone '%s': %s", repopath, err.Error())
+		fail(http.StatusUnauthorized, msg)
+		return
+	}
+	defer deleteSessionKey(gcl)
 	_, err = gcl.GetRepo(repopath)
 	if err != nil {
 		code, converr := strconv.Atoi(err.Error()[:3])

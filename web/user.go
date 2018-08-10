@@ -6,9 +6,12 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
+	"github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
 	"github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/log"
@@ -31,6 +34,19 @@ func cookieExp() time.Time {
 	return time.Now().Add(7 * 24 * time.Hour)
 }
 
+func deleteSessionKey(gcl *ginclient.Client) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Write("Could not retrieve hostname")
+		hostname = "(unknown)"
+	}
+	description := fmt.Sprintf("GIN Client: %s@%s", gcl.Username, hostname)
+	gcl.DeletePubKeyByTitle(description)
+	configpath, _ := config.Path(false)
+	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", serveralias))
+	os.Remove(keyfilepath)
+}
+
 func doLogin(username, password string) (*usersession, error) {
 	// TODO: remove this function when it becomes a standalone function in gin-cli
 	// see https://github.com/G-Node/gin-cli/issues/212
@@ -38,10 +54,6 @@ func doLogin(username, password string) (*usersession, error) {
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
 	glog.Write("Performing login from gin-valid")
-	err := gincl.Login(username, password, "gin-valid")
-	if err != nil {
-		return nil, err
-	}
 	tokenCreate := &gogs.CreateAccessTokenOption{Name: clientID}
 	address := fmt.Sprintf("/api/v1/users/%s/tokens", username)
 	res, err := gincl.PostBasicAuth(address, username, password, tokenCreate)
@@ -147,7 +159,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	cl := ginclient.New(serveralias)
-	cl.LoadToken()
+	cl.UserToken = session.UserToken
 	fmt.Printf("Requesting repository listing for user %s\n", user)
 	fmt.Printf("Server alias: %s\n", serveralias)
 	fmt.Println("Server configuration:")
