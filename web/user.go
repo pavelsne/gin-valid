@@ -144,6 +144,20 @@ const repostmpl = `
 	{{ end }}
 `
 
+func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (*usersession, error) {
+	cookie, err := r.Cookie("gin-valid-session")
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return nil, fmt.Errorf("No session cookie found")
+	}
+	session, ok := sessions[cookie.Value]
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return nil, fmt.Errorf("Invalid session found in cookie")
+	}
+	return session, nil
+}
+
 // ListRepos queries the GIN server for a list of repositories owned (or
 // accessible) by a given user and renders the page which displays the
 // repositories and their validation status.
@@ -156,6 +170,12 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		return
 	}
+
+	session, err := getSessionOrRedirect(w, r)
+	if err != nil {
+		return
+	}
+
 	vars := mux.Vars(r)
 	user := vars["user"]
 	cl := ginclient.New(serveralias)
