@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
@@ -96,18 +97,19 @@ type BidsResultStruct struct {
 
 // Results returns the results of a previously run BIDS validation.
 func Results(w http.ResponseWriter, r *http.Request) {
-	service := mux.Vars(r)["service"]
+	vars := mux.Vars(r)
+	user := vars["user"]
+	repo := vars["repo"]
+	service := strings.ToLower(vars["service"])
 	if !helpers.SupportedValidator(service) {
 		log.Write("[Error] unsupported validator '%s'\n", service)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	user := mux.Vars(r)["user"]
-	repo := mux.Vars(r)["repo"]
 	log.Write("[Info] '%s' results for repo '%s/%s'\n", service, user, repo)
 
 	srvcfg := config.Read()
-	resdir := filepath.Join(srvcfg.Dir.Result, "bids", user, repo, srvcfg.Label.ResultsFolder)
+	resdir := filepath.Join(srvcfg.Dir.Result, service, user, repo, srvcfg.Label.ResultsFolder)
 
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)

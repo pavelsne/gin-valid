@@ -184,7 +184,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
-		log.Write("[Error] failed to render login page")
+		log.Write("[Error] failed to render repository list page")
 		fail(http.StatusInternalServerError, "something went wrong")
 		return
 	}
