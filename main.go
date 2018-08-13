@@ -61,6 +61,7 @@ func root(w http.ResponseWriter, r *http.Request) {
 
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
+	r.HandleFunc("/pubvalidate", web.PubValidate)
 	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
 	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)
 	r.HandleFunc("/results/{service}/{user}/{repo}", web.Results)
