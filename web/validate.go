@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -25,6 +26,8 @@ import (
 	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
 )
+
+const builtinuser = "ServiceWaiter"
 
 // BidsMessages contains Errors, Warnings and Ignored messages.
 // Currently its just the number of individual messages
@@ -71,12 +74,211 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 	return valcfg, nil
 }
 
+// PubValidate parses the POST data from the root form and calls the validator
+// using the built-in ServiceWaiter.
+func PubValidate(w http.ResponseWriter, r *http.Request) {
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
+
+	if r.Method != http.MethodPost {
+		// Do nothing
+		log.Write("[Error] no post request: %s", r.Method)
+		return
+	}
+
+	srvcfg := config.Read()
+
+	vars := mux.Vars(r)
+	repopath := vars["repopath"]
+	validator := "bids" // vars["validator"] // TODO: add options to root form
+
+	log.Write("[Info] About to validate public repository with %s", builtinuser)
+	gcl := ginclient.New(serveralias)
+	err := gcl.Login(builtinuser, srvcfg.Settings.GPW, clientID)
+	if err != nil {
+		log.Write("[error] failed to login as %s", builtinuser)
+		msg := fmt.Sprintf("failed to clone '%s': %s", repopath, err.Error())
+		fail(http.StatusUnauthorized, msg)
+		return
+	}
+	defer gcl.Logout()
+	_, err = gcl.GetRepo(repopath)
+	if err != nil {
+		code, converr := strconv.Atoi(err.Error()[:3])
+		if converr != nil {
+			// First three chars should be error code. If not, default to NotFound
+			code = http.StatusNotFound
+		}
+		msg := fmt.Sprintf("accessing '%s': %s", repopath, err.Error())
+		// TODO: Ask user to check private setting on repository
+		fail(code, msg)
+		return
+	}
+
+	log.Write("[Info] Found repository on server")
+
+	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
+	if err != nil {
+		msg := fmt.Sprintf("creating temp gin directory: '%s'\n", err.Error())
+		fail(http.StatusInternalServerError, msg)
+		return
+	}
+
+	// Enable cleanup once tried and tested
+	defer os.RemoveAll(tmpdir)
+
+	// TODO: if (annexed) content is not available yet, wait and retry.  We
+	// would have to set a max timeout for this.  The issue is that when a user
+	// does a 'gin upload' a push happens immediately and the hook is
+	// triggered, but annexed content is only transferred after the push and
+	// could take a while (hours?). The validation service should try to
+	// download content after the transfer is complete, or should keep retrying
+	// until it's available, with a timeout. We could also make it more
+	// efficient by only downloading the content in the directories which are
+	// specified in the validator config (if it exists).
+
+	glog.Init("")
+	clonechan := make(chan git.RepoFileStatus)
+	os.Chdir(tmpdir)
+	go gcl.CloneRepo(repopath, clonechan)
+	for stat := range clonechan {
+		if stat.Err != nil {
+			e := stat.Err.(shell.Error)
+			log.Write("[Error] %s", e.UError)
+			log.Write("[Error] %s", e.Description)
+			log.Write("[Error] %s", e.Origin)
+			fail(http.StatusInternalServerError, "failed to fetch repository data")
+
+			return
+		}
+		log.Write("[Info] %s %s", stat.State, stat.Progress)
+	}
+	log.Write("[Info] clone complete for '%s'", repopath)
+
+	log.Write("[Info] Downloading content")
+	getcontentchan := make(chan git.RepoFileStatus)
+	go gcl.GetContent([]string{"."}, getcontentchan)
+	for stat := range getcontentchan {
+		if stat.Err != nil {
+			e := stat.Err.(shell.Error)
+			log.Write("[Error] %s", e.UError)
+			log.Write("[Error] %s", e.Description)
+			log.Write("[Error] %s", e.Origin)
+			fail(http.StatusInternalServerError, "failed to fetch repository data")
+			return
+		}
+		log.Write("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
+	}
+	log.Write("[Info] get-content complete")
+
+	// Create results folder if necessary
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	resdir := filepath.Join(srvcfg.Dir.Result, "bids", repopath, srvcfg.Label.ResultsFolder)
+	err = os.MkdirAll(resdir, os.ModePerm)
+	if err != nil {
+		log.Write("[Error] creating '%s' results folder: %s", repopath, err.Error())
+		fail(http.StatusInternalServerError, "failed to generate results")
+		return
+	}
+
+	// Use validation config file if available
+	repopathparts := strings.SplitN(repopath, "/", 2)
+	repo := repopathparts[1]
+	valroot := filepath.Join(tmpdir, repo)
+	var validateNifti bool
+
+	cfgpath := filepath.Join(tmpdir, repo, srvcfg.Label.ValidationConfigFile)
+	log.Write("[Info] looking for config file at '%s'", cfgpath)
+	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
+		valcfg, err := handleValidationConfig(cfgpath)
+		if err == nil {
+			checkdir := filepath.Join(tmpdir, repo, valcfg.Bidscfg.BidsRoot)
+			if fi, err = os.Stat(checkdir); err == nil && fi.IsDir() {
+				valroot = checkdir
+				log.Write("[Info] using validation root directory: %s\n%s\n", valroot, checkdir)
+			} else {
+				log.Write("[Error] reading validation root directory: %s", err.Error())
+			}
+			validateNifti = valcfg.Bidscfg.ValidateNifti
+		} else {
+			log.Write("[Error] unmarshalling validation config file: %s", err.Error())
+		}
+	} else {
+		log.Write("[Info] no validation config file found or processed, running from repo root (%s)", err.Error())
+	}
+
+	// Ignoring NiftiHeaders for now, since it seems to be a common error
+	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+	log.Write("[Info] Running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
+
+	// Make sure the validator arguments are in the right order
+	var args []string
+	if !validateNifti {
+		args = append(args, "--ignoreNiftiHeaders")
+	}
+	args = append(args, "--json")
+	args = append(args, valroot)
+
+	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
+	var out, serr bytes.Buffer
+	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	cmd.Dir = tmpdir
+	if err = cmd.Run(); err != nil {
+		log.Write("[Error] running bids validation (%s): '%s', '%s', '%s'",
+			valroot, err.Error(), serr.String(), out.String())
+
+		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
+		if err != nil {
+			log.Write("[Error] writing results badge for '%s'\n", repopath)
+		}
+		return
+	}
+
+	// We need this for both the writing of the result and the badge
+	output := out.Bytes()
+
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	if err != nil {
+		log.Write("[Error] writing results file for '%s'\n", repopath)
+	}
+
+	// Write proper badge according to result
+	content := resources.BidsSuccess
+	var parseBIDS BidsRoot
+	err = json.Unmarshal(output, &parseBIDS)
+	if err != nil {
+		log.Write("[Error] unmarshalling results json: %s", err.Error())
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Errors) > 0 {
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Warnings) > 0 {
+		content = resources.BidsWarning
+	}
+
+	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
+	if err != nil {
+		log.Write("[Error] writing results badge for '%s'\n", repopath)
+	}
+
+	log.Write("[Info] finished validating repo '%s/%s'\n", repopath)
+
+	http.ServeContent(w, r, srvcfg.Label.ResultsBadge, time.Now(), bytes.NewReader([]byte(content)))
+}
+
 // Validate temporarily clones a provided repository from
 // a gin server and checks whether the content of the
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-
 	fail := func(status int, message string) {
 		log.Write("[error] %s", message)
 		w.WriteHeader(status)

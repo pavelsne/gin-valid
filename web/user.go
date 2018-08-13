@@ -25,6 +25,8 @@ type usersession struct {
 	web.UserToken
 }
 
+const clientID = "gin-valid"
+
 var (
 	sessions = make(map[string]*usersession)
 	hookregs = make(map[string]web.UserToken)
@@ -50,7 +52,6 @@ func deleteSessionKey(gcl *ginclient.Client) {
 func doLogin(username, password string) (*usersession, error) {
 	// TODO: remove this function when it becomes a standalone function in gin-cli
 	// see https://github.com/G-Node/gin-cli/issues/212
-	clientID := "gin-valid"
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
 	glog.Write("Performing login from gin-valid")

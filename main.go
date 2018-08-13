@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,12 +9,13 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/G-Node/gin-valid/web"
+	"github.com/alecthomas/template"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -36,7 +36,27 @@ Options:
   `
 
 func root(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "root", time.Now(), bytes.NewReader([]byte("alive")))
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
+	if r.Method == http.MethodGet {
+		tmpl := template.New("layout")
+		tmpl, err := tmpl.Parse(templates.Layout)
+		if err != nil {
+			log.Write("[Error] failed to parse html layout page")
+			fail(http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl, err = tmpl.Parse(templates.Root)
+		if err != nil {
+			log.Write("[Error] failed to render root page")
+			fail(http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl.Execute(w, nil)
+	}
 }
 
 func registerRoutes(r *mux.Router) {
