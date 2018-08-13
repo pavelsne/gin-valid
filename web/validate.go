@@ -278,16 +278,28 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 	repopath := r.Form["repopath"][0]
 	validator := "bids" // vars["validator"] // TODO: add options to root form
 
-	log.Write("[Info] About to validate public repository with %s", builtinuser)
+	log.Write("[Info] About to validate repository '%s' with %s", repopath, builtinuser)
+	log.Write("[Info] Logging in to GIN server")
 	gcl := ginclient.New(serveralias)
 	err := gcl.Login(builtinuser, srvcfg.Settings.GPW, clientID)
 	if err != nil {
 		log.Write("[error] failed to login as %s", builtinuser)
-		msg := fmt.Sprintf("failed to clone '%s': %s", repopath, err.Error())
+		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
 		fail(http.StatusUnauthorized, msg)
 		return
 	}
 	defer gcl.Logout()
+
+	// check if repository is accessible
+	repoinfo, err := gcl.GetRepo(repopath)
+	if err != nil {
+		fail(http.StatusNotFound, err.Error())
+		return
+	}
+	if repoinfo.Private {
+		// Wat?
+		// Looks like we have access but it's private. Fail??
+	}
 
 	statuscode, err := runValidator(validator, repopath, "HEAD", gcl)
 	if err != nil {
