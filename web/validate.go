@@ -308,6 +308,7 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(statuscode)
 		w.Write([]byte(err.Error()))
+		return
 	}
 
 	// TODO redirect to results
@@ -413,6 +414,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(statuscode)
 		w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
