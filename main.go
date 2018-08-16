@@ -10,12 +10,13 @@ import (
 	"os/signal"
 	"strings"
 
+	"html/template"
+
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/G-Node/gin-valid/web"
-	"github.com/alecthomas/template"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"

@@ -13,7 +13,7 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
-	"github.com/G-Node/gin-cli/web"
+	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
@@ -22,14 +22,14 @@ import (
 
 type usersession struct {
 	sessionID string
-	web.UserToken
+	gweb.UserToken
 }
 
 const clientID = "gin-valid"
 
 var (
 	sessions = make(map[string]*usersession)
-	hookregs = make(map[string]web.UserToken)
+	hookregs = make(map[string]gweb.UserToken)
 )
 
 func cookieExp() time.Time {
