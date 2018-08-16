@@ -1,3 +1,6 @@
+package templates
+
+var BidsResults = `
 {{ define "content" }}
 <br/><br/>
 {{ .Badge }}
@@ -54,3 +57,4 @@
 {{ end }}
 
 {{ end }}
+`

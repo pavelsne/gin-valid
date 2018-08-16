@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,11 +8,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
+	"strings"
+
+	"html/template"
 
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/G-Node/gin-valid/web"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
@@ -35,14 +37,64 @@ Options:
   `
 
 func root(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "root", time.Now(), bytes.NewReader([]byte("alive")))
+	fail := func(status int, message string) {
+		log.Write("[error] %s", message)
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+	}
+	if r.Method == http.MethodGet {
+		tmpl := template.New("layout")
+		tmpl, err := tmpl.Parse(templates.Layout)
+		if err != nil {
+			log.Write("[Error] failed to parse html layout page")
+			fail(http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl, err = tmpl.Parse(templates.Root)
+		if err != nil {
+			log.Write("[Error] failed to render root page")
+			fail(http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl.Execute(w, nil)
+	}
 }
 
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", root)
+	r.HandleFunc("/pubvalidate", web.PubValidate)
 	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
 	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)
 	r.HandleFunc("/results/{service}/{user}/{repo}", web.Results)
+	r.HandleFunc("/login", web.Login)
+	r.HandleFunc("/repos/{user}", web.ListRepos)
+	r.HandleFunc("/repos/{user}/{repo}/{service}/enable", web.EnableHook)
+	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo)
+}
+
+func startupCheck(srvcfg config.ServerCfg) {
+	// Check whether the required directories are available and accessible
+	if !helpers.ValidDirectory(srvcfg.Dir.Temp) {
+		os.Exit(-1)
+	}
+
+	log.ShowWrite("[Warmup] using temp directory: '%s'", srvcfg.Dir.Temp)
+	log.ShowWrite("[Warmup] using results directory '%s'", srvcfg.Dir.Result)
+
+	// Check bids-validator is installed
+	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.BIDS)
+	if err != nil {
+		log.ShowWrite("[Error] checking bids-validator '%s'", err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] using bids-validator v%s", strings.TrimSpace(outstr))
+
+	// Check gin client can reach server (non-fatal)
+	// web.CommCheck("ServiceWaiter", srvcfg.Settings.GPW)
+	// err = web.CommCheck("testuser", "a test password 42")
+	// if err != nil {
+	// 	log.ShowWrite("[Error] comm check with gin server failed '%s'", err.Error())
+	// }
 }
 
 func main() {
@@ -82,44 +134,25 @@ func main() {
 	}
 	defer log.Close()
 
+	startupCheck(srvcfg)
+
 	// Log cli arguments
 	log.Write("[Warmup] cli arguments: %v\n", args)
 
-	// Check whether the required directories are available and accessible
-	if !helpers.ValidDirectory(srvcfg.Dir.Temp) {
-		os.Exit(-1)
-	}
-
-	log.ShowWrite("[Warmup] using temp directory: '%s'\n", srvcfg.Dir.Temp)
-	log.ShowWrite("[Warmup] using results directory '%s'\n", srvcfg.Dir.Result)
-
-	// Check gin is installed and available
-	outstr, err := helpers.AppVersionCheck(srvcfg.Exec.Gin)
-	if err != nil {
-		log.ShowWrite("\n[Error] checking gin client '%s'\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] using %s", outstr)
-
-	// Check bids-validator is installed
-	outstr, err = helpers.AppVersionCheck(srvcfg.Exec.BIDS)
-	if err != nil {
-		log.ShowWrite("\n[Error] checking bids-validator '%s'\n", err.Error())
-		os.Exit(-1)
-	}
-	log.ShowWrite("[Warmup] using bids-validator v%s", outstr)
-
 	// Use port if provided.
-	port := fmt.Sprintf(":%s", srvcfg.Settings.Port)
-	if helpers.IsValidPort(args["--listen"]) {
-		p := args["--listen"]
-		port = fmt.Sprintf(":%s", p.(string))
-	} else {
-		log.ShowWrite("[Warning] could not parse a valid port number, using default\n")
+	port := srvcfg.Settings.Port
+	if argport := args["--listen"]; argport != nil {
+		port = argport.(string)
 	}
-	log.ShowWrite("[Warmup] using port: '%s'\n", port)
 
-	log.ShowWrite("[Warmup] registering routes\n")
+	if helpers.IsValidPort(port) {
+		port = fmt.Sprintf(":%s", port)
+	} else {
+		log.ShowWrite("[Warning] could not parse a valid port number, using default")
+	}
+	log.ShowWrite("[Warmup] using port: '%s'", port)
+
+	log.ShowWrite("[Warmup] registering routes")
 	router := mux.NewRouter()
 	registerRoutes(router)
 
@@ -140,14 +173,14 @@ func main() {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, os.Interrupt)
 		<-sigchan
-		log.ShowWrite("[Info] System interrupt, shutting down server\n")
+		log.ShowWrite("[Info] System interrupt, shutting down server")
 		err := server.Shutdown(context.Background())
 		if err != nil {
-			log.ShowWrite("[Error] on server shutdown: %v\n", err)
+			log.ShowWrite("[Error] on server shutdown: %v", err)
 		}
 	}()
 
-	log.ShowWrite("[Start] Listen and serve\n")
+	log.ShowWrite("[Start] Listen and serve")
 	err = server.ListenAndServe()
 	if err == http.ErrServerClosed {
 		log.Close()

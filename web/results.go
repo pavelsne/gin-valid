@@ -7,13 +7,14 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/gorilla/mux"
 )
 
@@ -96,18 +97,19 @@ type BidsResultStruct struct {
 
 // Results returns the results of a previously run BIDS validation.
 func Results(w http.ResponseWriter, r *http.Request) {
-	service := mux.Vars(r)["service"]
+	vars := mux.Vars(r)
+	user := vars["user"]
+	repo := vars["repo"]
+	service := strings.ToLower(vars["service"])
 	if !helpers.SupportedValidator(service) {
 		log.Write("[Error] unsupported validator '%s'\n", service)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	user := mux.Vars(r)["user"]
-	repo := mux.Vars(r)["repo"]
 	log.Write("[Info] '%s' results for repo '%s/%s'\n", service, user, repo)
 
 	srvcfg := config.Read()
-	resdir := filepath.Join(srvcfg.Dir.Result, "bids", user, repo, srvcfg.Label.ResultsFolder)
+	resdir := filepath.Join(srvcfg.Dir.Result, service, user, repo, srvcfg.Label.ResultsFolder)
 
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)
@@ -133,9 +135,14 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse html template
-	layout := path.Join(srvcfg.Settings.ResourcesDir, "templates", "layout.html")
-	htmlcontent := path.Join(srvcfg.Settings.ResourcesDir, "templates", "bids_results.html")
-	tmpl, err := template.ParseFiles(layout, htmlcontent)
+	tmpl := template.New("layout")
+	tmpl, err = tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.BidsResults)
 	if err != nil {
 		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))

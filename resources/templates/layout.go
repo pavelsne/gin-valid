@@ -1,3 +1,6 @@
+package templates
+
+var Layout = `
 {{ define "layout" }}
 <!DOCTYPE html>
 <html lang="en">
@@ -63,3 +66,4 @@
 </body>
 </html>
 {{ end }}
+`

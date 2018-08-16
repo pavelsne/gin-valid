@@ -66,20 +66,14 @@ func Write(fmtstr string, args ...interface{}) {
 	if logger == nil {
 		return
 	}
-	if len(args) == 0 {
-		logger.Print(fmtstr)
-	} else {
-		logger.Printf(fmtstr, args...)
-	}
+	logger.Printf(fmtstr, args...)
 }
 
 // ShowWrite writes a string to Stdout and passes
 // the arguments on to the log Writer function.
 func ShowWrite(fmtstr string, args ...interface{}) {
-	if len(args) == 0 {
-	} else {
-		fmt.Fprintf(os.Stdout, fmtstr, args...)
-	}
+	fmt.Printf(fmtstr, args...)
+	fmt.Println() // Append newline to stdout
 	Write(fmtstr, args...)
 }
 
