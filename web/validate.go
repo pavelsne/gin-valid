@@ -98,6 +98,7 @@ func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int,
 			// First three chars should be error code. If not, default to NotFound
 			code = http.StatusNotFound
 		}
+		log.Write("[Error] Repository not found: %s", repopath)
 		return code, fmt.Errorf("accessing '%s': %s", repopath, err.Error())
 	}
 
@@ -105,7 +106,8 @@ func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int,
 
 	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, service)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Errorf("creating temp gin directory: '%s'", err.Error())
+		log.Write("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
+		return http.StatusInternalServerError, fmt.Errorf("validation on %s failed", repopath)
 	}
 
 	// Enable cleanup once tried and tested
