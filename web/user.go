@@ -202,7 +202,9 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, &repos)
 }
 
-func Repo(w http.ResponseWriter, r *http.Request) {
+// ShowRepo renders the repository information page where the user can enable or
+// disable validator hooks.
+func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	fail := func(status int, message string) {
 		log.Write("[error] %s", message)
 		w.WriteHeader(status)
