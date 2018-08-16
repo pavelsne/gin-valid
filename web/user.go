@@ -162,10 +162,6 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	user := vars["user"]
 	cl := ginclient.New(serveralias)
 	cl.UserToken = session.UserToken
-	fmt.Printf("Requesting repository listing for user %s\n", user)
-	fmt.Printf("Server alias: %s\n", serveralias)
-	fmt.Println("Server configuration:")
-	fmt.Println(cl.Host)
 
 	userrepos, err := cl.ListRepos(user)
 	if err != nil {
