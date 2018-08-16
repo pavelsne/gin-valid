@@ -25,6 +25,11 @@ type usersession struct {
 	gweb.UserToken
 }
 
+type repoHooksInfo struct {
+	gogs.Repository
+	Hooks map[string]bool
+}
+
 const clientID = "gin-valid"
 
 var (
@@ -185,22 +190,18 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		fail(http.StatusInternalServerError, "something went wrong")
 		return
 	}
-	type repoHooksInfo struct {
-		gogs.Repository
-		Hooks map[string]bool
-	}
-
 	repos := make([]repoHooksInfo, len(userrepos))
 	// TODO: For each supported hook type, check if it's active
-	for idx, r := range userrepos {
+	for idx, rinfo := range userrepos {
 		bids := false
-		if _, ok := hookregs[r.FullName]; ok {
+		if _, ok := hookregs[rinfo.FullName]; ok {
 			bids = true
 		}
-		repos[idx] = repoHooksInfo{r, map[string]bool{"BIDS": bids, "NIX": false}}
+		repos[idx] = repoHooksInfo{rinfo, map[string]bool{"BIDS": bids, "NIX": false}}
 	}
 	tmpl.Execute(w, &repos)
 }
+
 func Repo(w http.ResponseWriter, r *http.Request) {
 	fail := func(status int, message string) {
 		log.Write("[error] %s", message)
@@ -247,10 +248,6 @@ func Repo(w http.ResponseWriter, r *http.Request) {
 		log.Write("[Error] failed to render repository page")
 		fail(http.StatusInternalServerError, "something went wrong")
 		return
-	}
-	type repoHooksInfo struct {
-		gogs.Repository
-		Hooks map[string]bool
 	}
 
 	bids := false
