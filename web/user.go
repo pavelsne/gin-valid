@@ -13,7 +13,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	gcfg "github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
-	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
@@ -21,20 +20,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type usersession struct {
-	sessionID string
-	gweb.UserToken
-}
-
 type repoHooksInfo struct {
 	gogs.Repository
 	Hooks map[string]bool
 }
-
-var (
-	sessions = make(map[string]*usersession)
-	hookregs = make(map[string]gweb.UserToken)
-)
 
 func cookieExp() time.Time {
 	return time.Now().Add(7 * 24 * time.Hour)

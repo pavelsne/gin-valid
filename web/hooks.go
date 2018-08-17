@@ -15,11 +15,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const (
-	serveralias = "gin"
-	hooksecret  = "omg so sekrit"
-)
-
 func EnableHook(w http.ResponseWriter, r *http.Request) {
 	fail := func(status int, message string) {
 		log.Write("[error] %s", message)
@@ -56,6 +51,8 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 }
 
 func validateHookSecret(data []byte, secret string) bool {
+	cfg := config.Read()
+	hooksecret := cfg.Settings.HookSecret
 	sig := hmac.New(sha256.New, []byte(hooksecret))
 	sig.Write(data)
 	signature := hex.EncodeToString(sig.Sum(nil))
@@ -72,8 +69,8 @@ func createValidHook(repopath string, service string, session *usersession) erro
 	client := ginclient.New(serveralias)
 	client.UserToken = session.UserToken
 	hookconfig := make(map[string]string)
-	// TODO: proper host:port
-	// TODO: proper secret
+	cfg := config.Read()
+	hooksecret := cfg.Settings.HookSecret
 	hookconfig["url"] = strings.ToLower(fmt.Sprintf("%s:%s/validate/%s/%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port, service, repopath))
 	hookconfig["content_type"] = "json"
 	hookconfig["secret"] = hooksecret

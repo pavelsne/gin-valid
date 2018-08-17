@@ -36,6 +36,7 @@ type Settings struct {
 	GINUser     string   `json:"ginuser"`
 	GINPassword string   `json:"ginpassword"`
 	ClientID    string   `json:"clientid"`
+	HookSecret  string   `json:"hooksecret"`
 	Validators  []string `json:"validators"`
 }
 
@@ -55,6 +56,7 @@ var defaultCfg = ServerCfg{
 		GINUser:     "ServiceWaiter",
 		GINPassword: "",
 		ClientID:    "gin-valid",
+		HookSecret:  "",
 		Validators:  []string{"bids"},
 	},
 	Executables{
