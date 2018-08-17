@@ -26,8 +26,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const builtinuser = "ServiceWaiter"
-
 // BidsMessages contains Errors, Warnings and Ignored messages.
 // Currently its just the number of individual messages
 // we are interested in. If this changes, the messages
@@ -275,17 +273,18 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	srvcfg := config.Read()
+	ginuser := srvcfg.Settings.GINUser
 
 	r.ParseForm()
 	repopath := r.Form["repopath"][0]
 	validator := "bids" // vars["validator"] // TODO: add options to root form
 
-	log.Write("[Info] About to validate repository '%s' with %s", repopath, builtinuser)
+	log.Write("[Info] About to validate repository '%s' with %s", repopath, ginuser)
 	log.Write("[Info] Logging in to GIN server")
 	gcl := ginclient.New(serveralias)
-	err := gcl.Login(builtinuser, srvcfg.Settings.GPW, clientID)
+	err := gcl.Login(ginuser, srvcfg.Settings.GINPassword, clientID)
 	if err != nil {
-		log.Write("[error] failed to login as %s", builtinuser)
+		log.Write("[error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
 		fail(http.StatusUnauthorized, msg)
 		return

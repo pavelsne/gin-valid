@@ -30,11 +30,12 @@ type Denotations struct {
 // Settings provide the default server settings.
 // "Validators" currently only supports "BIDS".
 type Settings struct {
-	RootURL    string   `json:"rooturl"`
-	Port       string   `json:"port"`
-	LogSize    int      `json:"logsize"`
-	GPW        string   `json:"gpw"`
-	Validators []string `json:"validators"`
+	RootURL     string   `json:"rooturl"`
+	Port        string   `json:"port"`
+	LogSize     int      `json:"logsize"`
+	GINUser     string   `json:"ginuser"`
+	GINPassword string   `json:"ginpassword"`
+	Validators  []string `json:"validators"`
 }
 
 // ServerCfg holds the config used to setup the gin validation server and
@@ -46,12 +47,13 @@ type ServerCfg struct {
 	Label    Denotations `json:"denotations"`
 }
 
-var ginValidDefaultServer = ServerCfg{
+var defaultCfg = ServerCfg{
 	Settings{
-		Port:       "3033",
-		LogSize:    1048576,
-		GPW:        "",
-		Validators: []string{"bids"},
+		Port:        "3033",
+		LogSize:     1048576,
+		GINUser:     "ServiceWaiter",
+		GINPassword: "",
+		Validators:  []string{"bids"},
 	},
 	Executables{
 		BIDS: "bids-validator",
@@ -72,10 +74,10 @@ var ginValidDefaultServer = ServerCfg{
 
 // Read returns the default server configuration.
 func Read() ServerCfg {
-	return ginValidDefaultServer
+	return defaultCfg
 }
 
 // Set sets the server configuration.
 func Set(cfg ServerCfg) {
-	ginValidDefaultServer = cfg
+	defaultCfg = cfg
 }
