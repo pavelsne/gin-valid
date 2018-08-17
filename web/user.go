@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
-	"github.com/G-Node/gin-cli/ginclient/config"
+	gcfg "github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
 	gweb "github.com/G-Node/gin-cli/web"
+	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
@@ -29,8 +30,6 @@ type repoHooksInfo struct {
 	gogs.Repository
 	Hooks map[string]bool
 }
-
-const clientID = "gin-valid"
 
 var (
 	sessions = make(map[string]*usersession)
@@ -49,7 +48,7 @@ func deleteSessionKey(gcl *ginclient.Client) {
 	}
 	description := fmt.Sprintf("GIN Client: %s@%s", gcl.Username, hostname)
 	gcl.DeletePubKeyByTitle(description)
-	configpath, _ := config.Path(false)
+	configpath, _ := gcfg.Path(false)
 	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", serveralias))
 	os.Remove(keyfilepath)
 }
@@ -60,7 +59,8 @@ func doLogin(username, password string) (*usersession, error) {
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
 	glog.Write("Performing login from gin-valid")
-	tokenCreate := &gogs.CreateAccessTokenOption{Name: clientID}
+	cfg := config.Read()
+	tokenCreate := &gogs.CreateAccessTokenOption{Name: cfg.Settings.ClientID}
 	address := fmt.Sprintf("/api/v1/users/%s/tokens", username)
 	res, err := gincl.PostBasicAuth(address, username, password, tokenCreate)
 	if err != nil {

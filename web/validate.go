@@ -282,7 +282,7 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 	log.Write("[Info] About to validate repository '%s' with %s", repopath, ginuser)
 	log.Write("[Info] Logging in to GIN server")
 	gcl := ginclient.New(serveralias)
-	err := gcl.Login(ginuser, srvcfg.Settings.GINPassword, clientID)
+	err := gcl.Login(ginuser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
 	if err != nil {
 		log.Write("[error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())

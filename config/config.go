@@ -35,6 +35,7 @@ type Settings struct {
 	LogSize     int      `json:"logsize"`
 	GINUser     string   `json:"ginuser"`
 	GINPassword string   `json:"ginpassword"`
+	ClientID    string   `json:"clientid"`
 	Validators  []string `json:"validators"`
 }
 
@@ -53,6 +54,7 @@ var defaultCfg = ServerCfg{
 		LogSize:     1048576,
 		GINUser:     "ServiceWaiter",
 		GINPassword: "",
+		ClientID:    "gin-valid",
 		Validators:  []string{"bids"},
 	},
 	Executables{
