@@ -112,8 +112,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		cfg := config.Read()
 		sessions[session.sessionID] = session
-		cookie := http.Cookie{Name: "gin-valid-session", Value: session.sessionID, Expires: cookieExp()}
+		cookie := http.Cookie{Name: cfg.Settings.CookieName, Value: session.sessionID, Expires: cookieExp()}
 		http.SetCookie(w, &cookie)
 		// Redirect to repo listing
 		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
@@ -121,7 +122,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (*usersession, error) {
-	cookie, err := r.Cookie("gin-valid-session")
+	cfg := config.Read()
+	cookie, err := r.Cookie(cfg.Settings.CookieName)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return nil, fmt.Errorf("No session cookie found")

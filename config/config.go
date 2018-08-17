@@ -37,6 +37,7 @@ type Settings struct {
 	GINPassword string   `json:"ginpassword"`
 	ClientID    string   `json:"clientid"`
 	HookSecret  string   `json:"hooksecret"`
+	CookieName  string   `json:"cookiename"`
 	Validators  []string `json:"validators"`
 }
 
@@ -57,6 +58,7 @@ var defaultCfg = ServerCfg{
 		GINPassword: "",
 		ClientID:    "gin-valid",
 		HookSecret:  "",
+		CookieName:  "gin-valid-session",
 		Validators:  []string{"bids"},
 	},
 	Executables{

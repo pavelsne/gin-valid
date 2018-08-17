@@ -28,7 +28,9 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	user := vars["user"]
 	repo := vars["repo"]
 	service := vars["service"]
-	sessionid, err := r.Cookie("gin-valid-session")
+	cfg := config.Read()
+	cookiename := cfg.Settings.CookieName
+	sessionid, err := r.Cookie(cookiename)
 	if err != nil {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
 		fail(http.StatusUnauthorized, msg)
