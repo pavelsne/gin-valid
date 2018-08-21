@@ -10,12 +10,9 @@ import (
 	"os/signal"
 	"strings"
 
-	"html/template"
-
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
-	"github.com/G-Node/gin-valid/resources/templates"
 	"github.com/G-Node/gin-valid/web"
 	"github.com/docopt/docopt-go"
 	"github.com/gorilla/handlers"
@@ -36,32 +33,8 @@ Options:
   --config=<path>     Path to a json server config file
   `
 
-func root(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
-	if r.Method == http.MethodGet {
-		tmpl := template.New("layout")
-		tmpl, err := tmpl.Parse(templates.Layout)
-		if err != nil {
-			log.Write("[Error] failed to parse html layout page")
-			fail(http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl, err = tmpl.Parse(templates.Root)
-		if err != nil {
-			log.Write("[Error] failed to render root page")
-			fail(http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl.Execute(w, nil)
-	}
-}
-
 func registerRoutes(r *mux.Router) {
-	r.HandleFunc("/", root)
+	r.HandleFunc("/", web.Root)
 	r.HandleFunc("/pubvalidate", web.PubValidate)
 	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
 	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)

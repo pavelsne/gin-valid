@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ import (
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources"
+	"github.com/G-Node/gin-valid/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
 )
@@ -257,15 +259,31 @@ func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int,
 	return 0, nil
 }
 
+// Root renders the root page of the gin-valid service, which allows the user
+// to manually run a validator on a publicly accessible repository, without
+// using a web hook.
+func Root(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		tmpl := template.New("layout")
+		tmpl, err := tmpl.Parse(templates.Layout)
+		if err != nil {
+			log.Write("[Error] failed to parse html layout page")
+			fail(w, http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl, err = tmpl.Parse(templates.Root)
+		if err != nil {
+			log.Write("[Error] failed to render root page")
+			fail(w, http.StatusInternalServerError, "something went wrong")
+			return
+		}
+		tmpl.Execute(w, nil)
+	}
+}
+
 // PubValidate parses the POST data from the root form and calls the validator
 // using the built-in ServiceWaiter.
 func PubValidate(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
-
 	if r.Method != http.MethodPost {
 		// Do nothing
 		log.Write("[Error] no post request: %s", r.Method)
@@ -286,7 +304,7 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Write("[error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
-		fail(http.StatusUnauthorized, msg)
+		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 	defer gcl.Logout()
@@ -294,12 +312,16 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 	// check if repository is accessible
 	repoinfo, err := gcl.GetRepo(repopath)
 	if err != nil {
-		fail(http.StatusNotFound, err.Error())
+		fail(w, http.StatusNotFound, err.Error())
 		return
 	}
 	if repoinfo.Private {
-		// Wat?
-		// Looks like we have access but it's private. Fail??
+		// We (the built in ServiceWaiter) have access, but the repository is
+		// marked private. This can happen if an owner of the private
+		// repository adds the user as a collaborator to the repository. We
+		// don't allow this.
+		fail(w, http.StatusNotFound, fmt.Sprintf("repository '%s' does not exist", repopath))
+		return
 	}
 
 	statuscode, err := runValidator(validator, repopath, "HEAD", gcl)
@@ -307,8 +329,7 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 		if statuscode == 0 {
 			statuscode = http.StatusInternalServerError
 		}
-		w.WriteHeader(statuscode)
-		w.Write([]byte(err.Error()))
+		fail(w, statuscode, err.Error())
 		return
 	}
 
@@ -322,12 +343,6 @@ func PubValidate(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
-
 	// TODO: Simplify/split this function
 	if r.Method != http.MethodPost {
 		// Do nothing
@@ -342,7 +357,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Write("[Error] failed to parse hook payload")
-		fail(http.StatusBadRequest, "bad request")
+		fail(w, http.StatusBadRequest, "bad request")
 		return
 	}
 	err = json.Unmarshal(b, &hookdata)
@@ -354,7 +369,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	if !validateHookSecret(b, secret) {
 		log.Write("[Error] authorisation failed: bad secret")
-		fail(http.StatusBadRequest, "bad request")
+		fail(w, http.StatusBadRequest, "bad request")
 		return
 	}
 
@@ -366,7 +381,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	service := vars["service"]
 	if !helpers.SupportedValidator(service) {
-		fail(http.StatusNotFound, "unsupported validator")
+		fail(w, http.StatusNotFound, "unsupported validator")
 		return
 	}
 	user := vars["user"]
@@ -390,7 +405,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		// We don't have a valid token for this repository: can't clone
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
-		fail(http.StatusUnauthorized, msg)
+		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 	log.Write("[Info] Using user %s", ut.Username)
@@ -403,7 +418,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Write("[error] failed to create session key")
 		msg := fmt.Sprintf("failed to clone '%s': %s", repopath, err.Error())
-		fail(http.StatusUnauthorized, msg)
+		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 	defer deleteSessionKey(gcl)

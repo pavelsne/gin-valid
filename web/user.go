@@ -79,24 +79,19 @@ func doLogin(username, password string) (*usersession, error) {
 // Login renders the login form and logs in the user to the GIN server, storing
 // a session token and key.
 func Login(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
 	if r.Method == http.MethodGet {
 		log.Write("Login page")
 		tmpl := template.New("layout")
 		tmpl, err := tmpl.Parse(templates.Layout)
 		if err != nil {
 			log.Write("[Error] failed to parse html layout page")
-			fail(http.StatusInternalServerError, "something went wrong")
+			fail(w, http.StatusInternalServerError, "something went wrong")
 			return
 		}
 		tmpl, err = tmpl.Parse(templates.Login)
 		if err != nil {
 			log.Write("[Error] failed to render login page")
-			fail(http.StatusInternalServerError, "something went wrong")
+			fail(w, http.StatusInternalServerError, "something went wrong")
 			return
 		}
 		tmpl.Execute(w, nil)
@@ -108,7 +103,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		session, err := doLogin(username, password)
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
-			fail(http.StatusUnauthorized, "authentication failed")
+			fail(w, http.StatusUnauthorized, "authentication failed")
 			return
 		}
 
@@ -140,11 +135,6 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (*usersession,
 // accessible) by a given user and renders the page which displays the
 // repositories and their validation status.
 func ListRepos(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
 	if r.Method != http.MethodGet {
 		return
 	}
@@ -172,13 +162,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		fail(http.StatusInternalServerError, "something went wrong")
+		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
 		log.Write("[Error] failed to render repository list page")
-		fail(http.StatusInternalServerError, "something went wrong")
+		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	repos := make([]repoHooksInfo, len(userrepos))
@@ -196,11 +186,6 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 // ShowRepo renders the repository information page where the user can enable or
 // disable validator hooks.
 func ShowRepo(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
 	if r.Method != http.MethodGet {
 		return
 	}
@@ -233,13 +218,13 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		fail(http.StatusInternalServerError, "something went wrong")
+		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoPage)
 	if err != nil {
 		log.Write("[Error] failed to render repository page")
-		fail(http.StatusInternalServerError, "something went wrong")
+		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 
