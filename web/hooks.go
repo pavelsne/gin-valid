@@ -16,11 +16,6 @@ import (
 )
 
 func EnableHook(w http.ResponseWriter, r *http.Request) {
-	fail := func(status int, message string) {
-		log.Write("[error] %s", message)
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-	}
 	if r.Method != "GET" {
 		return
 	}
@@ -33,20 +28,20 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	sessionid, err := r.Cookie(cookiename)
 	if err != nil {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		fail(http.StatusUnauthorized, msg)
+		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 
 	session, ok := sessions[sessionid.Value]
 	if !ok {
 		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		fail(http.StatusUnauthorized, msg)
+		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	err = createValidHook(repopath, service, session)
 	if err != nil {
-		fail(http.StatusUnauthorized, err.Error())
+		fail(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s", session.Username), http.StatusFound)
