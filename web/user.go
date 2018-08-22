@@ -1,9 +1,12 @@
 package web
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -42,6 +45,19 @@ func deleteSessionKey(gcl *ginclient.Client) {
 	os.Remove(keyfilepath)
 }
 
+// generateNewSessionID simply generates a secure random 64-byte string (b64 encoded)
+func generateNewSessionID() (string, error) {
+	length := 64
+	id := make([]byte, length)
+	if _, err := io.ReadFull(rand.Reader, id); err != nil {
+		// This will bubble up and result in an authentication failure. Is
+		// there a better message to display to the user? Perhaps 500?
+		log.Write("[error] Failed to generate random session ID")
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(id), nil
+}
+
 func doLogin(username, password string) (*usersession, error) {
 	// TODO: remove this function when it becomes a standalone function in gin-cli
 	// see https://github.com/G-Node/gin-cli/issues/212
@@ -72,7 +88,10 @@ func doLogin(username, password string) (*usersession, error) {
 	gincl.Token = token.Sha1
 	log.Write("Login successful. Username: %s", username)
 
-	sessionid := "unique session-id " + username
+	sessionid, err := generateNewSessionID()
+	if err != nil {
+		return nil, err
+	}
 	return &usersession{sessionid, gincl.UserToken}, nil
 }
 
@@ -109,7 +128,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		cfg := config.Read()
 		sessions[session.sessionID] = session
-		cookie := http.Cookie{Name: cfg.Settings.CookieName, Value: session.sessionID, Expires: cookieExp()}
+		cookie := http.Cookie{
+			Name:    cfg.Settings.CookieName,
+			Value:   session.sessionID,
+			Expires: cookieExp(),
+			Secure:  false, // TODO: Switch when we go live
+		}
 		http.SetCookie(w, &cookie)
 		// Redirect to repo listing
 		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
