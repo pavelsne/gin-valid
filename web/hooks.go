@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -23,7 +25,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	validator := vars["validator"]
+	validator := strings.ToLower(vars["validator"])
 	cfg := config.Read()
 	cookiename := cfg.Settings.CookieName
 	sessionid, err := r.Cookie(cookiename)
@@ -73,7 +75,11 @@ func createValidHook(repopath string, validator string, session *usersession) er
 	hookconfig := make(map[string]string)
 	cfg := config.Read()
 	hooksecret := cfg.Settings.HookSecret
-	hookconfig["url"] = strings.ToLower(fmt.Sprintf("%s:%s/validate/%s/%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port, service, repopath))
+
+	host := fmt.Sprintf("%s:%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port)
+	u, err := url.Parse(host)
+	u.Path = path.Join(u.Path, "validate", validator, repopath)
+	hookconfig["url"] = u.String()
 	hookconfig["content_type"] = "json"
 	hookconfig["secret"] = hooksecret
 	data := gogs.CreateHookOption{
