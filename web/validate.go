@@ -423,7 +423,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer deleteSessionKey(gcl)
 
-	statuscode, err := runValidator(repopath, service, commithash, gcl)
+	statuscode, err := runValidator(service, repopath, commithash, gcl)
 	if err != nil {
 		if statuscode == 0 {
 			statuscode = http.StatusInternalServerError
