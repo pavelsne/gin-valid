@@ -113,16 +113,16 @@ func main() {
 	log.Write("[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
-	port := srvcfg.Settings.Port
+	var port string
 	if argport := args["--listen"]; argport != nil {
 		port = argport.(string)
 	}
 
-	if helpers.IsValidPort(port) {
-		port = fmt.Sprintf(":%s", port)
-	} else {
+	if !helpers.IsValidPort(port) {
 		log.ShowWrite("[Warning] could not parse a valid port number, using default")
+		port = srvcfg.Settings.Port
 	}
+	port = fmt.Sprintf(":%s", port)
 	log.ShowWrite("[Warmup] using port: '%s'", port)
 
 	log.ShowWrite("[Warmup] registering routes")
