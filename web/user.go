@@ -3,11 +3,9 @@ package web
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -59,35 +57,15 @@ func generateNewSessionID() (string, error) {
 }
 
 func doLogin(username, password string) (*usersession, error) {
-	// TODO: remove this function when it becomes a standalone function in gin-cli
-	// see https://github.com/G-Node/gin-cli/issues/212
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
 	glog.Write("Performing login from gin-valid")
 	cfg := config.Read()
-	tokenCreate := &gogs.CreateAccessTokenOption{Name: cfg.Settings.ClientID}
-	address := fmt.Sprintf("/api/v1/users/%s/tokens", username)
-	res, err := gincl.PostBasicAuth(address, username, password, tokenCreate)
-	if err != nil {
-		return nil, err // return error from PostBasicAuth directly
-	}
-	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf(res.Status)
-	}
-	data, err := ioutil.ReadAll(res.Body)
+	err := gincl.NewToken(username, password, cfg.Settings.ClientID)
 	if err != nil {
 		return nil, err
 	}
-	log.Write("Got response: %s", res.Status)
-	token := ginclient.AccessToken{}
-	err = json.Unmarshal(data, &token)
-	if err != nil {
-		return nil, err
-	}
-	gincl.Username = username
-	gincl.Token = token.Sha1
 	log.Write("Login successful. Username: %s", username)
-
 	sessionid, err := generateNewSessionID()
 	if err != nil {
 		return nil, err
