@@ -100,16 +100,16 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	service := strings.ToLower(vars["service"])
-	if !helpers.SupportedValidator(service) {
-		log.Write("[Error] unsupported validator '%s'\n", service)
+	validator := strings.ToLower(vars["validator"])
+	if !helpers.SupportedValidator(validator) {
+		log.Write("[Error] unsupported validator '%s'\n", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	log.Write("[Info] '%s' results for repo '%s/%s'\n", service, user, repo)
+	log.Write("[Info] '%s' results for repo '%s/%s'\n", validator, user, repo)
 
 	srvcfg := config.Read()
-	resdir := filepath.Join(srvcfg.Dir.Result, service, user, repo, srvcfg.Label.ResultsFolder)
+	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo, srvcfg.Label.ResultsFolder)
 
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)

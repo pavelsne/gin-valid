@@ -36,12 +36,12 @@ Options:
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", web.Root)
 	r.HandleFunc("/pubvalidate", web.PubValidate)
-	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
-	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)
-	r.HandleFunc("/results/{service}/{user}/{repo}", web.Results)
+	r.HandleFunc("/validate/{validator}/{user}/{repo}", web.Validate)
+	r.HandleFunc("/status/{validator}/{user}/{repo}", web.Status)
+	r.HandleFunc("/results/{validator}/{user}/{repo}", web.Results)
 	r.HandleFunc("/login", web.Login)
 	r.HandleFunc("/repos/{user}", web.ListRepos)
-	r.HandleFunc("/repos/{user}/{repo}/{service}/enable", web.EnableHook)
+	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook)
 	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo)
 }
 
