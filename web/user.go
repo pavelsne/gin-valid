@@ -190,17 +190,11 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	// between Enabled, Disabled, and Not Found, so the repohooks map values
 	// need to be ternary.
 
-	supportedValidators := config.Read().Settings.Validators
 	for idx, rinfo := range userrepos {
 		repohooks, err := getRepoHooks(cl, rinfo.FullName)
 		if err != nil {
 			// simply initialise the map for now
 			repohooks = make(map[string]bool)
-		}
-		for _, validator := range supportedValidators {
-			if _, ok := repohooks[validator]; !ok {
-				repohooks[validator] = false
-			}
 		}
 		repos[idx] = repoHooksInfo{rinfo, repohooks}
 	}
@@ -288,6 +282,13 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error
 			hooks[validator] = false
 		}
 		// TODO: Check if the same validator is found twice
+	}
+	// add supported validators that were not found and mark them disabled
+	supportedValidators := config.Read().Settings.Validators
+	for _, validator := range supportedValidators {
+		if _, ok := hooks[validator]; !ok {
+			hooks[validator] = false
+		}
 	}
 	return hooks, nil
 }
