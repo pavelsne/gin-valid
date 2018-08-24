@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-loc=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 set -euo pipefail
+loc=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+pushd ${loc}
 
 go build
 docker build --tag=ginvalid .
@@ -12,7 +13,5 @@ cp -a "./srvdata/." "${srvdata}"
 
 configdir="${srvdata}/config"
 configfile="${configdir}/cfg.json"
-
-# TODO: If cfg does not exist, create empty
 
 docker run --rm --network=ginbridge -v ${srvdata}:/gin-valid -v ${configdir}:/config/ -p 3033:3033 --name ginvalid -it ginvalid

@@ -73,7 +73,7 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 	return valcfg, nil
 }
 
-func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int, error) {
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (int, error) {
 	log.Write("[Info] Commit hash: %s", commit)
 
 	repopathparts := strings.SplitN(repopath, "/", 2)
@@ -104,7 +104,7 @@ func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int,
 
 	log.Write("[Info] Found repository on server")
 
-	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, service)
+	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
 	if err != nil {
 		log.Write("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
 		return http.StatusInternalServerError, fmt.Errorf("validation on %s failed", repopath)
@@ -164,7 +164,7 @@ func runValidator(service, repopath, commit string, gcl *ginclient.Client) (int,
 
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	resdir := filepath.Join(srvcfg.Dir.Result, service, repopath, srvcfg.Label.ResultsFolder)
+	resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, srvcfg.Label.ResultsFolder)
 	err = os.MkdirAll(resdir, os.ModePerm)
 	if err != nil {
 		log.Write("[Error] creating '%s' results folder: %s", repopath, err.Error())
@@ -379,15 +379,15 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	log.Write("[Info] Commit hash: %s", commithash)
 
 	vars := mux.Vars(r)
-	service := vars["service"]
-	if !helpers.SupportedValidator(service) {
+	validator := vars["validator"]
+	if !helpers.SupportedValidator(validator) {
 		fail(w, http.StatusNotFound, "unsupported validator")
 		return
 	}
 	user := vars["user"]
 	repo := vars["repo"]
 	repopath := fmt.Sprintf("%s/%s", user, repo)
-	log.Write("[Info] '%s' validation for repo '%s'", service, repopath)
+	log.Write("[Info] '%s' validation for repo '%s'", validator, repopath)
 
 	// TODO add check if a repo is currently being validated. Since the cloning
 	// can potentially take quite some time prohibit running the same
@@ -423,7 +423,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer deleteSessionKey(gcl)
 
-	statuscode, err := runValidator(repopath, service, commithash, gcl)
+	statuscode, err := runValidator(validator, repopath, commithash, gcl)
 	if err != nil {
 		if statuscode == 0 {
 			statuscode = http.StatusInternalServerError

@@ -17,15 +17,15 @@ import (
 // Status returns the status of the latest BIDS validation for
 // a provided gin user repository.
 func Status(w http.ResponseWriter, r *http.Request) {
-	service := mux.Vars(r)["service"]
-	if !helpers.SupportedValidator(service) {
-		log.Write("[Error] unsupported validator '%s'\n", service)
+	validator := mux.Vars(r)["validator"]
+	if !helpers.SupportedValidator(validator) {
+		log.Write("[Error] unsupported validator '%s'\n", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
 	user := mux.Vars(r)["user"]
 	repo := mux.Vars(r)["repo"]
-	log.Write("[Info] '%s' status for repo '%s/%s'\n", service, user, repo)
+	log.Write("[Info] '%s' status for repo '%s/%s'\n", validator, user, repo)
 
 	srvcfg := config.Read()
 

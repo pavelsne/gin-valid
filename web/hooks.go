@@ -6,10 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	gogs "github.com/gogits/go-gogs-client"
 	"github.com/gorilla/mux"
@@ -22,7 +25,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
-	service := vars["service"]
+	validator := strings.ToLower(vars["validator"])
 	cfg := config.Read()
 	cookiename := cfg.Settings.CookieName
 	sessionid, err := r.Cookie(cookiename)
@@ -38,8 +41,12 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
+	if !helpers.SupportedValidator(validator) {
+		fail(w, http.StatusNotFound, "unsupported validator")
+		return
+	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
-	err = createValidHook(repopath, service, session)
+	err = createValidHook(repopath, validator, session)
 	if err != nil {
 		fail(w, http.StatusUnauthorized, err.Error())
 		return
@@ -56,11 +63,11 @@ func validateHookSecret(data []byte, secret string) bool {
 	return signature == secret
 }
 
-func createValidHook(repopath string, service string, session *usersession) error {
+func createValidHook(repopath string, validator string, session *usersession) error {
 	// TODO: AVOID DUPLICATES:
 	//   - If it's already hooked and we have it on record, do nothing
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
-	log.Write("Adding %s hook to %s\n", service, repopath)
+	log.Write("Adding %s hook to %s\n", validator, repopath)
 
 	gvconfig := config.Read()
 	client := ginclient.New(serveralias)
@@ -68,7 +75,11 @@ func createValidHook(repopath string, service string, session *usersession) erro
 	hookconfig := make(map[string]string)
 	cfg := config.Read()
 	hooksecret := cfg.Settings.HookSecret
-	hookconfig["url"] = strings.ToLower(fmt.Sprintf("%s:%s/validate/%s/%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port, service, repopath))
+
+	host := fmt.Sprintf("%s:%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port)
+	u, err := url.Parse(host)
+	u.Path = path.Join(u.Path, "validate", validator, repopath)
+	hookconfig["url"] = u.String()
 	hookconfig["content_type"] = "json"
 	hookconfig["secret"] = hooksecret
 	data := gogs.CreateHookOption{

@@ -36,12 +36,12 @@ Options:
 func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", web.Root)
 	r.HandleFunc("/pubvalidate", web.PubValidate)
-	r.HandleFunc("/validate/{service}/{user}/{repo}", web.Validate)
-	r.HandleFunc("/status/{service}/{user}/{repo}", web.Status)
-	r.HandleFunc("/results/{service}/{user}/{repo}", web.Results)
+	r.HandleFunc("/validate/{validator}/{user}/{repo}", web.Validate)
+	r.HandleFunc("/status/{validator}/{user}/{repo}", web.Status)
+	r.HandleFunc("/results/{validator}/{user}/{repo}", web.Results)
 	r.HandleFunc("/login", web.Login)
 	r.HandleFunc("/repos/{user}", web.ListRepos)
-	r.HandleFunc("/repos/{user}/{repo}/{service}/enable", web.EnableHook)
+	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook)
 	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo)
 }
 
@@ -113,16 +113,16 @@ func main() {
 	log.Write("[Warmup] cli arguments: %v\n", args)
 
 	// Use port if provided.
-	port := srvcfg.Settings.Port
+	var port string
 	if argport := args["--listen"]; argport != nil {
 		port = argport.(string)
 	}
 
-	if helpers.IsValidPort(port) {
-		port = fmt.Sprintf(":%s", port)
-	} else {
+	if !helpers.IsValidPort(port) {
 		log.ShowWrite("[Warning] could not parse a valid port number, using default")
+		port = srvcfg.Settings.Port
 	}
+	port = fmt.Sprintf(":%s", port)
 	log.ShowWrite("[Warmup] using port: '%s'", port)
 
 	log.ShowWrite("[Warmup] registering routes")
