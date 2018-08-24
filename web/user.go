@@ -338,10 +338,10 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bids := false
-	if _, ok := hookregs[repoinfo.FullName]; ok {
-		bids = true
+	hooks, err := getRepoHooks(cl, repopath)
+	if err != nil {
+		hooks = make(map[string]bool)
 	}
-	repohi := repoHooksInfo{repoinfo, map[string]bool{"BIDS": bids, "NIX": false}}
+	repohi := repoHooksInfo{repoinfo, hooks}
 	tmpl.Execute(w, &repohi)
 }
