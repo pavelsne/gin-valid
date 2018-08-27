@@ -3,6 +3,7 @@ package web
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -19,7 +20,7 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	gcfg "github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
-	"github.com/G-Node/gin-cli/web"
+	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
@@ -80,8 +81,39 @@ func doLogin(username, password string) (*usersession, error) {
 	return &usersession{sessionid, gincl.UserToken}, nil
 }
 
+func saveToken(filename string, ut gweb.UserToken) error {
+	cfg := config.Read()
+	filename = filepath.Join(cfg.Dir.Tokens, filename)
+	tokenfile, err := os.Create(filename)
+	defer tokenfile.Close()
+	if err != nil {
+		return err
+	}
+	encoder := gob.NewEncoder(tokenfile)
+	err = encoder.Encode(ut)
+	return err
+}
+
+func loadToken(filename string) (gweb.UserToken, error) {
+	cfg := config.Read()
+	ut := gweb.UserToken{}
+	filename = filepath.Join(cfg.Dir.Tokens, filename)
+	tokenfile, err := os.Open(filename)
+	if err != nil {
+		return ut, err
+	}
+	defer tokenfile.Close()
+
+	decoder := gob.NewDecoder(tokenfile)
+	err = decoder.Decode(ut)
+	if err != nil {
+		return ut, err
+	}
+	return ut, nil
+}
+
 // Login renders the login form and logs in the user to the GIN server, storing
-// a session token and key.
+// a session token.
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		log.Write("Login page")
@@ -234,7 +266,7 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error
 		return nil, fmt.Errorf("hook request returned non-OK exit status: %s", res.Status)
 	}
 	var ginhooks []gogs.Hook
-	defer web.CloseRes(res.Body)
+	defer gweb.CloseRes(res.Body)
 	b, err := ioutil.ReadAll(res.Body) // ignore potential read error on res.Body; catch later when trying to unmarshal
 	if err != nil {
 		// failed to read response body

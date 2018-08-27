@@ -100,6 +100,8 @@ func main() {
 		config.Set(srvcfg)
 	}
 
+	// TODO: Create missing directories defined in cfg
+
 	err = log.Init()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[Error] opening logfile '%s'\n", err.Error())

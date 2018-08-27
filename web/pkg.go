@@ -13,7 +13,6 @@ const (
 
 var (
 	sessions = make(map[string]*usersession)
-	hookregs = make(map[string]gweb.UserToken)
 )
 
 type usersession struct {

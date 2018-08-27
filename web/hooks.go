@@ -48,6 +48,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	err = createValidHook(repopath, validator, session)
 	if err != nil {
+		// TODO: Check if failure is for other reasons and maybe return 500 instead
 		fail(w, http.StatusUnauthorized, err.Error())
 		return
 	}
@@ -99,8 +100,11 @@ func createValidHook(repopath string, validator string, session *usersession) er
 		log.Write("[error] non-OK response: %s\n", res.Status)
 		return fmt.Errorf("Hook creation failed: %s", res.Status)
 	}
-	hookregs[repopath] = session.UserToken
-	return nil
+	// store user's token to disk so that the service can use it to clone the
+	// repository when needed
+	tokenfilename := strings.Replace(repopath, "/", "-", -1)
+	err = saveToken(tokenfilename, session.UserToken)
+	return err
 }
 
 func deleteValidHook(repopath string, id int) {

@@ -399,10 +399,11 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: Use the payload data to check if the specific commit has already
 	// been validated
 
-	// get the username + token from the registered hooks map
+	// get the token from the file stored in tokens directory
 
-	ut, ok := hookregs[repopath]
-	if !ok {
+	tokenfilename := strings.Replace(repopath, "/", "-", -1)
+	ut, err := loadToken(tokenfilename)
+	if err != nil {
 		// We don't have a valid token for this repository: can't clone
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, http.StatusUnauthorized, msg)
