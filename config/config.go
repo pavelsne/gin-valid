@@ -59,7 +59,8 @@ var defaultCfg = ServerCfg{
 		ClientID:    "gin-valid",
 		HookSecret:  "",
 		CookieName:  "gin-valid-session",
-		Validators:  []string{"bids"},
+		// NOTE: NIX isn't actually supported yet, but having a second value helps with testing
+		Validators: []string{"bids", "nix"},
 	},
 	Executables{
 		BIDS: "bids-validator",

@@ -3,18 +3,25 @@ package web
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
 	gcfg "github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
+	"github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
 	"github.com/G-Node/gin-valid/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
@@ -174,15 +181,116 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repos := make([]repoHooksInfo, len(userrepos))
-	// TODO: For each supported hook type, check if it's active
+
+	// TODO: check that we have a token configured for each repository with a
+	// hook.
+	// TODO: if a validator is present but disabled warn the user that a
+	// matching hook exists (which means it was created at some point), but it
+	// is disabled and offer to enable it. This required differentiating
+	// between Enabled, Disabled, and Not Found, so the repohooks map values
+	// need to be ternary.
+
 	for idx, rinfo := range userrepos {
-		bids := false
-		if _, ok := hookregs[rinfo.FullName]; ok {
-			bids = true
+		repohooks, err := getRepoHooks(cl, rinfo.FullName)
+		if err != nil {
+			// simply initialise the map for now
+			repohooks = make(map[string]bool)
 		}
-		repos[idx] = repoHooksInfo{rinfo, map[string]bool{"BIDS": bids, "NIX": false}}
+		repos[idx] = repoHooksInfo{rinfo, repohooks}
 	}
 	tmpl.Execute(w, &repos)
+}
+
+// matchValidator receives a URL path from a GIN hook and returns the validator
+// it specifies.
+func matchValidator(path string) (string, error) {
+	re := regexp.MustCompile(`validate/(?P<validator>[^/]+)/.*`)
+	if !re.MatchString(path) {
+		return "", fmt.Errorf("URL does not match expected pattern for validator hooks")
+	}
+	match := re.FindStringSubmatch(path)
+	validator := match[1]
+
+	if !helpers.SupportedValidator(validator) {
+		return "", fmt.Errorf("URL matches pattern but validator '%s' is not known", validator)
+	}
+
+	return validator, nil
+}
+
+// getRepoHooks queries the main GIN server and determines which validators are
+// enabled via hooks (true), which are configured but disabled (false)
+func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error) {
+	// fetch all hooks
+	res, err := cl.Get(path.Join("api", "v1", "repos", repopath, "hooks"))
+	if err != nil {
+		// Bad request?
+		log.Write("hook request failed for %s", repopath)
+		return nil, fmt.Errorf("hook request failed")
+	}
+	if res.StatusCode != http.StatusOK {
+		// Bad repo path? Unauthorised request?
+		log.Write("hook request for %s returned non-OK exit status: %s", repopath, res.Status)
+		return nil, fmt.Errorf("hook request returned non-OK exit status: %s", res.Status)
+	}
+	var ginhooks []gogs.Hook
+	defer web.CloseRes(res.Body)
+	b, err := ioutil.ReadAll(res.Body) // ignore potential read error on res.Body; catch later when trying to unmarshal
+	if err != nil {
+		// failed to read response body
+		log.Write("failed to read response for %s", repopath)
+		return nil, fmt.Errorf("failed to read response")
+	}
+	err = json.Unmarshal(b, &ginhooks)
+	if err != nil {
+		// failed to parse response body
+		log.Write("failed to parse hooks list for %s", repopath)
+		return nil, fmt.Errorf("failed to parse hooks list")
+	}
+
+	hooks := make(map[string]bool)
+	for _, hook := range ginhooks {
+		// parse URL to get validator
+		hookurl, err := url.Parse(hook.Config["url"])
+		if err != nil {
+			// can't parse URL. Ignore
+			log.Write("can't parse URL %s", hook.Config["url"])
+			continue
+		}
+		validator, err := matchValidator(hookurl.Path)
+		if err != nil {
+			// Validator not recognised (either path was bad or validator is
+			// not supported). Either way, just continue.
+			log.Write("validator in path not recognised %s (%s)", hookurl.String(), hookurl.Path)
+			log.Write("hook URL in config: %s", hook.Config["url"])
+			log.Write(err.Error())
+			continue
+		}
+		// Check if Active, and 'push' is in Events
+		var pushenabled bool
+		for _, event := range hook.Events {
+			if event == "push" {
+				pushenabled = true
+				break
+			}
+		}
+		if hook.Active && pushenabled {
+			log.Write("found %s hook for %s", validator, repopath)
+			hooks[validator] = true
+		} else {
+			log.Write("found disabled or invalid %s hook for %s", validator, repopath)
+			hooks[validator] = false
+		}
+		// TODO: Check if the same validator is found twice
+	}
+	// add supported validators that were not found and mark them disabled
+	supportedValidators := config.Read().Settings.Validators
+	for _, validator := range supportedValidators {
+		if _, ok := hooks[validator]; !ok {
+			hooks[validator] = false
+		}
+	}
+	return hooks, nil
 }
 
 // ShowRepo renders the repository information page where the user can enable or
@@ -230,10 +338,10 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bids := false
-	if _, ok := hookregs[repoinfo.FullName]; ok {
-		bids = true
+	hooks, err := getRepoHooks(cl, repopath)
+	if err != nil {
+		hooks = make(map[string]bool)
 	}
-	repohi := repoHooksInfo{repoinfo, map[string]bool{"BIDS": bids, "NIX": false}}
+	repohi := repoHooksInfo{repoinfo, hooks}
 	tmpl.Execute(w, &repohi)
 }
