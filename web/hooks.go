@@ -102,8 +102,7 @@ func createValidHook(repopath string, validator string, session *usersession) er
 	}
 	// store user's token to disk so that the service can use it to clone the
 	// repository when needed
-	tokenfilename := strings.Replace(repopath, "/", "-", -1)
-	err = saveToken(tokenfilename, session.UserToken)
+	err = saveToken(session.UserToken)
 	return err
 }
 
