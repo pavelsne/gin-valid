@@ -66,13 +66,39 @@ func generateNewSessionID() (string, error) {
 func doLogin(username, password string) (*usersession, error) {
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
-	glog.Write("Performing login from gin-valid")
 	cfg := config.Read()
-	err := gincl.NewToken(username, password, cfg.Settings.ClientID)
+	clientID := cfg.Settings.ClientID
+
+	// retrieve user's active tokens
+	log.Write("Retrieving tokens for user '%s'", username)
+	tokens, err := gincl.GetTokens(username, password)
 	if err != nil {
 		return nil, err
 	}
-	log.Write("Login successful. Username: %s", username)
+
+	// check if we have a gin-valid token
+	log.Write("Checking for existing token")
+	for _, token := range tokens {
+		if token.Name == clientID {
+			// found our token
+			gincl.UserToken.Username = username
+			gincl.UserToken.Token = token.Sha1
+			log.Write("Found %s access token", clientID)
+			break
+		}
+	}
+
+	if len(gincl.UserToken.Token) == 0 {
+		// no existing token; creating new one
+		log.Write("Requesting new token from server")
+		glog.Write("Performing login from gin-valid")
+		err = gincl.NewToken(username, password, clientID)
+		if err != nil {
+			return nil, err
+		}
+		log.Write("Login successful. Username: %s", username)
+	}
+
 	sessionid, err := generateNewSessionID()
 	if err != nil {
 		return nil, err
