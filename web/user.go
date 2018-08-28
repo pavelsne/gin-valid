@@ -3,7 +3,6 @@ package web
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -79,37 +78,6 @@ func doLogin(username, password string) (*usersession, error) {
 		return nil, err
 	}
 	return &usersession{sessionid, gincl.UserToken}, nil
-}
-
-func saveToken(filename string, ut gweb.UserToken) error {
-	cfg := config.Read()
-	filename = filepath.Join(cfg.Dir.Tokens, filename)
-	tokenfile, err := os.Create(filename)
-	defer tokenfile.Close()
-	if err != nil {
-		return err
-	}
-	encoder := gob.NewEncoder(tokenfile)
-	err = encoder.Encode(ut)
-	return err
-}
-
-func loadToken(filename string) (gweb.UserToken, error) {
-	cfg := config.Read()
-	ut := gweb.UserToken{}
-	filename = filepath.Join(cfg.Dir.Tokens, filename)
-	tokenfile, err := os.Open(filename)
-	if err != nil {
-		return ut, err
-	}
-	defer tokenfile.Close()
-
-	decoder := gob.NewDecoder(tokenfile)
-	err = decoder.Decode(ut)
-	if err != nil {
-		return ut, err
-	}
-	return ut, nil
 }
 
 // Login renders the login form and logs in the user to the GIN server, storing
