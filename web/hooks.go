@@ -60,14 +60,13 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
 	log.Write("Adding %s hook to %s\n", validator, repopath)
 
-	gvconfig := config.Read()
+	cfg := config.Read()
 	client := ginclient.New(serveralias)
 	client.UserToken = usertoken
 	hookconfig := make(map[string]string)
-	cfg := config.Read()
 	hooksecret := cfg.Settings.HookSecret
 
-	host := fmt.Sprintf("%s:%s", gvconfig.Settings.RootURL, gvconfig.Settings.Port)
+	host := fmt.Sprintf("%s:%s", cfg.Settings.RootURL, cfg.Settings.Port)
 	u, err := url.Parse(host)
 	u.Path = path.Join(u.Path, "validate", validator, repopath)
 	hookconfig["url"] = u.String()
@@ -90,7 +89,9 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 		log.Write("[error] non-OK response: %s\n", res.Status)
 		return fmt.Errorf("Hook creation failed: %s", res.Status)
 	}
-	return err
+
+	// link user token to repository name so we can use it for validation
+	return linkToRepo(usertoken.Username, repopath)
 }
 
 func deleteValidHook(repopath string, id int) {
