@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
+	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
 	"github.com/G-Node/gin-valid/helpers"
 	"github.com/G-Node/gin-valid/log"
@@ -26,19 +27,8 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	user := vars["user"]
 	repo := vars["repo"]
 	validator := strings.ToLower(vars["validator"])
-	cfg := config.Read()
-	cookiename := cfg.Settings.CookieName
-	sessionid, err := r.Cookie(cookiename)
+	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
-		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		fail(w, http.StatusUnauthorized, msg)
-		return
-	}
-
-	session, ok := sessions[sessionid.Value]
-	if !ok {
-		msg := fmt.Sprintf("Hook creation failed: unauthorised")
-		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
 	if !helpers.SupportedValidator(validator) {
@@ -46,13 +36,13 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
-	err = createValidHook(repopath, validator, session)
+	err = createValidHook(repopath, validator, ut)
 	if err != nil {
 		// TODO: Check if failure is for other reasons and maybe return 500 instead
 		fail(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/repos/%s", session.Username), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
 }
 
 func validateHookSecret(data []byte, secret string) bool {
@@ -64,7 +54,7 @@ func validateHookSecret(data []byte, secret string) bool {
 	return signature == secret
 }
 
-func createValidHook(repopath string, validator string, session *usersession) error {
+func createValidHook(repopath string, validator string, usertoken gweb.UserToken) error {
 	// TODO: AVOID DUPLICATES:
 	//   - If it's already hooked and we have it on record, do nothing
 	//   - If it's already hooked, but we don't know about it, check if it's valid and don't recreate
@@ -72,7 +62,7 @@ func createValidHook(repopath string, validator string, session *usersession) er
 
 	gvconfig := config.Read()
 	client := ginclient.New(serveralias)
-	client.UserToken = session.UserToken
+	client.UserToken = usertoken
 	hookconfig := make(map[string]string)
 	cfg := config.Read()
 	hooksecret := cfg.Settings.HookSecret
@@ -100,9 +90,6 @@ func createValidHook(repopath string, validator string, session *usersession) er
 		log.Write("[error] non-OK response: %s\n", res.Status)
 		return fmt.Errorf("Hook creation failed: %s", res.Status)
 	}
-	// store user's token to disk so that the service can use it to clone the
-	// repository when needed
-	err = saveToken(session.UserToken)
 	return err
 }
 

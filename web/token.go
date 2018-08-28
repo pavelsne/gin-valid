@@ -41,7 +41,7 @@ func loadToken(username string) (gweb.UserToken, error) {
 }
 
 // linkToSession links a sessionID to a user's token.
-func linkToSession(sessionid string, username string) error {
+func linkToSession(username string, sessionid string) error {
 	return nil
 }
 
@@ -54,7 +54,7 @@ func getTokenBySession(sessionid string) (gweb.UserToken, error) {
 // linkToRepo links a repository name to a user's token.
 // This token will be used for cloning a repository to run a validator when a
 // web hook is triggered.
-func linkToRepo(repopath string, username string) error {
+func linkToRepo(username string, repopath string) error {
 	return nil
 }
 

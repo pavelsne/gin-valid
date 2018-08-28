@@ -63,7 +63,7 @@ func generateNewSessionID() (string, error) {
 	return base64.StdEncoding.EncodeToString(id), nil
 }
 
-func doLogin(username, password string) (*usersession, error) {
+func doLogin(username, password string) (string, error) {
 	gincl := ginclient.New(serveralias)
 	glog.Init("")
 	cfg := config.Read()
@@ -73,7 +73,7 @@ func doLogin(username, password string) (*usersession, error) {
 	log.Write("Retrieving tokens for user '%s'", username)
 	tokens, err := gincl.GetTokens(username, password)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// check if we have a gin-valid token
@@ -94,16 +94,19 @@ func doLogin(username, password string) (*usersession, error) {
 		glog.Write("Performing login from gin-valid")
 		err = gincl.NewToken(username, password, clientID)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		log.Write("Login successful. Username: %s", username)
 	}
 
 	sessionid, err := generateNewSessionID()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &usersession{sessionid, gincl.UserToken}, nil
+
+	// link session ID to usertoken
+	err = linkToSession(username, sessionid)
+	return sessionid, err
 }
 
 // Login renders the login form and logs in the user to the GIN server, storing
@@ -130,7 +133,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form["username"][0]
 		password := r.Form["password"][0]
-		session, err := doLogin(username, password)
+		sessionid, err := doLogin(username, password)
 		if err != nil {
 			log.Write("[error] Login failed: %s", err.Error())
 			fail(w, http.StatusUnauthorized, "authentication failed")
@@ -138,10 +141,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		cfg := config.Read()
-		sessions[session.sessionID] = session
 		cookie := http.Cookie{
 			Name:    cfg.Settings.CookieName,
-			Value:   session.sessionID,
+			Value:   sessionid,
 			Expires: cookieExp(),
 			Secure:  false, // TODO: Switch when we go live
 		}
@@ -151,19 +153,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (*usersession, error) {
+func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToken, error) {
 	cfg := config.Read()
 	cookie, err := r.Cookie(cfg.Settings.CookieName)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, fmt.Errorf("No session cookie found")
+		return gweb.UserToken{}, fmt.Errorf("No session cookie found")
 	}
-	session, ok := sessions[cookie.Value]
-	if !ok {
+	usertoken, err := getTokenBySession(cookie.Value)
+
+	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return nil, fmt.Errorf("Invalid session found in cookie")
+		return gweb.UserToken{}, fmt.Errorf("Invalid session found in cookie")
 	}
-	return session, nil
+	return usertoken, nil
 }
 
 // ListRepos queries the GIN server for a list of repositories owned (or
@@ -174,7 +177,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := getSessionOrRedirect(w, r)
+	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
 		return
 	}
@@ -182,7 +185,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	user := vars["user"]
 	cl := ginclient.New(serveralias)
-	cl.UserToken = session.UserToken
+	cl.UserToken = ut
 
 	userrepos, err := cl.ListRepos(user)
 	if err != nil {
@@ -326,7 +329,7 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := getSessionOrRedirect(w, r)
+	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
 		return
 	}
@@ -336,7 +339,7 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	repo := vars["repo"]
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	cl := ginclient.New(serveralias)
-	cl.UserToken = session.UserToken
+	cl.UserToken = ut
 	fmt.Printf("Requesting repository info %s\n", repopath)
 	fmt.Printf("Server alias: %s\n", serveralias)
 	fmt.Println("Server configuration:")
