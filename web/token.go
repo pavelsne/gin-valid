@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"os"
 	"path/filepath"
+	"strings"
 
 	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
@@ -23,13 +24,18 @@ func saveToken(ut gweb.UserToken) error {
 	return encoder.Encode(ut)
 }
 
-// loadToken reads a token from disk using the username as filename.
+// loadUserToken reads a token from disk using the username as filename.
 // The location is defined by config.Dir.Tokens.
-func loadToken(username string) (gweb.UserToken, error) {
+func loadUserToken(username string) (gweb.UserToken, error) {
 	cfg := config.Read()
-	ut := gweb.UserToken{}
 	filename := filepath.Join(cfg.Dir.Tokens, username)
-	tokenfile, err := os.Open(filename)
+	return loadToken(filename)
+}
+
+// loadToken loads a token from the provided path
+func loadToken(path string) (gweb.UserToken, error) {
+	ut := gweb.UserToken{}
+	tokenfile, err := os.Open(path)
 	if err != nil {
 		return ut, err
 	}
@@ -42,23 +48,37 @@ func loadToken(username string) (gweb.UserToken, error) {
 
 // linkToSession links a sessionID to a user's token.
 func linkToSession(username string, sessionid string) error {
-	return nil
+	cfg := config.Read()
+	tokendir := cfg.Dir.Tokens
+	utfile := filepath.Join(tokendir, username)
+	sidfile := filepath.Join(tokendir, "by-sessionid", sessionid)
+	return os.Link(utfile, sidfile)
 }
 
 // getTokenBySession loads a user's access token using the session ID found in
 // the user's cookie store.
 func getTokenBySession(sessionid string) (gweb.UserToken, error) {
-	return gweb.UserToken{}, nil
+	cfg := config.Read()
+	tokendir := cfg.Dir.Tokens
+	filename := filepath.Join(tokendir, "by-sessionid", sessionid)
+	return loadToken(filename)
 }
 
 // linkToRepo links a repository name to a user's token.
 // This token will be used for cloning a repository to run a validator when a
 // web hook is triggered.
 func linkToRepo(username string, repopath string) error {
-	return nil
+	cfg := config.Read()
+	tokendir := cfg.Dir.Tokens
+	utfile := filepath.Join(tokendir, username)
+	sidfile := filepath.Join(tokendir, "by-repo", strings.Replace(repopath, "/", "-", -1))
+	return os.Link(utfile, sidfile)
 }
 
 // getTokenByRepo loads a user's access token using a repository path.
 func getTokenByRepo(repopath string) (gweb.UserToken, error) {
-	return gweb.UserToken{}, nil
+	cfg := config.Read()
+	tokendir := cfg.Dir.Tokens
+	filename := filepath.Join(tokendir, "by-repo", strings.Replace(repopath, "/", "-", -1))
+	return loadToken(filename)
 }
