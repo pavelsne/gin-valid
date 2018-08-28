@@ -45,7 +45,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
 }
 
-func validateHookSecret(data []byte, secret string) bool {
+func checkHookSecret(data []byte, secret string) bool {
 	cfg := config.Read()
 	hooksecret := cfg.Settings.HookSecret
 	sig := hmac.New(sha256.New, []byte(hooksecret))

@@ -367,7 +367,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("bad request"))
 		return
 	}
-	if !validateHookSecret(b, secret) {
+	if !checkHookSecret(b, secret) {
 		log.Write("[Error] authorisation failed: bad secret")
 		fail(w, http.StatusBadRequest, "bad request")
 		return
