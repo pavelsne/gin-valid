@@ -99,6 +99,11 @@ func doLogin(username, password string) (string, error) {
 		log.Write("Login successful. Username: %s", username)
 	}
 
+	err = saveToken(gincl.UserToken)
+	if err != nil {
+		return "", err
+	}
+
 	sessionid, err := generateNewSessionID()
 	if err != nil {
 		return "", err
