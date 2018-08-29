@@ -54,7 +54,7 @@ func linkToSession(username string, sessionid string) error {
 	tokendir := cfg.Dir.Tokens
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
-	return os.Link(utfile, sidfile)
+	return os.Symlink(utfile, sidfile)
 }
 
 // getTokenBySession loads a user's access token using the session ID found in
@@ -74,7 +74,7 @@ func linkToRepo(username string, repopath string) error {
 	tokendir := cfg.Dir.Tokens
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-repo", b32(repopath))
-	return os.Link(utfile, sidfile)
+	return os.Symlink(utfile, sidfile)
 }
 
 // getTokenByRepo loads a user's access token using a repository path.
