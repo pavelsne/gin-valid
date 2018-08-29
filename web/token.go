@@ -1,13 +1,14 @@
 package web
 
 import (
+	"encoding/base32"
 	"encoding/gob"
 	"os"
 	"path/filepath"
-	"strings"
 
 	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/log"
 )
 
 // saveToken writes a token to disk using the username as filename.
@@ -37,12 +38,13 @@ func loadToken(path string) (gweb.UserToken, error) {
 	ut := gweb.UserToken{}
 	tokenfile, err := os.Open(path)
 	if err != nil {
+		log.Write("[Error] Failed to load token from %s", path)
 		return ut, err
 	}
 	defer tokenfile.Close()
 
 	decoder := gob.NewDecoder(tokenfile)
-	err = decoder.Decode(ut)
+	err = decoder.Decode(&ut)
 	return ut, err
 }
 
@@ -51,7 +53,7 @@ func linkToSession(username string, sessionid string) error {
 	cfg := config.Read()
 	tokendir := cfg.Dir.Tokens
 	utfile := filepath.Join(tokendir, username)
-	sidfile := filepath.Join(tokendir, "by-sessionid", sessionid)
+	sidfile := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
 	return os.Link(utfile, sidfile)
 }
 
@@ -60,7 +62,7 @@ func linkToSession(username string, sessionid string) error {
 func getTokenBySession(sessionid string) (gweb.UserToken, error) {
 	cfg := config.Read()
 	tokendir := cfg.Dir.Tokens
-	filename := filepath.Join(tokendir, "by-sessionid", sessionid)
+	filename := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
 	return loadToken(filename)
 }
 
@@ -71,7 +73,7 @@ func linkToRepo(username string, repopath string) error {
 	cfg := config.Read()
 	tokendir := cfg.Dir.Tokens
 	utfile := filepath.Join(tokendir, username)
-	sidfile := filepath.Join(tokendir, "by-repo", strings.Replace(repopath, "/", "-", -1))
+	sidfile := filepath.Join(tokendir, "by-repo", b32(repopath))
 	return os.Link(utfile, sidfile)
 }
 
@@ -79,6 +81,12 @@ func linkToRepo(username string, repopath string) error {
 func getTokenByRepo(repopath string) (gweb.UserToken, error) {
 	cfg := config.Read()
 	tokendir := cfg.Dir.Tokens
-	filename := filepath.Join(tokendir, "by-repo", strings.Replace(repopath, "/", "-", -1))
+	filename := filepath.Join(tokendir, "by-repo", b32(repopath))
 	return loadToken(filename)
+}
+
+// b32 encodes a string to base 32. Use this to make strings such as IDs or
+// repopaths filename friendly.
+func b32(s string) string {
+	return base32.StdEncoding.EncodeToString([]byte(s))
 }

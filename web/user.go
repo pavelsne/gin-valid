@@ -161,9 +161,9 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToke
 		return gweb.UserToken{}, fmt.Errorf("No session cookie found")
 	}
 	usertoken, err := getTokenBySession(cookie.Value)
-
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
+		log.Write("[Error] Loading token failed: %s", err.Error())
 		return gweb.UserToken{}, fmt.Errorf("Invalid session found in cookie")
 	}
 	return usertoken, nil
@@ -179,6 +179,7 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
+		log.Write("[Info] %s: Redirecting to login", err.Error())
 		return
 	}
 
