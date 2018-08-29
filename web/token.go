@@ -85,6 +85,15 @@ func getTokenByRepo(repopath string) (gweb.UserToken, error) {
 	return loadToken(filename)
 }
 
+// rmTokenRepoLink deletes a repository -> token link, removing our ability to
+// clone the repository.
+func rmTokenRepoLink(repopath string) error {
+	cfg := config.Read()
+	tokendir := cfg.Dir.Tokens
+	filename := filepath.Join(tokendir, "by-repo", b32(repopath))
+	return os.Remove(filename)
+}
+
 // b32 encodes a string to base 32. Use this to make strings such as IDs or
 // repopaths filename friendly.
 func b32(s string) string {

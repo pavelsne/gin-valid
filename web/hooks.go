@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -37,6 +38,37 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	err = createValidHook(repopath, validator, ut)
+	if err != nil {
+		// TODO: Check if failure is for other reasons and maybe return 500 instead
+		fail(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
+}
+
+func DisableHook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		return
+	}
+	vars := mux.Vars(r)
+	user := vars["user"]
+	repo := vars["repo"]
+	hookidstr := vars["hookid"]
+
+	hookid, err := strconv.Atoi(hookidstr)
+	if err != nil {
+		// bad hook ID (not a number): throw a generic 404
+		fail(w, http.StatusNotFound, "not found")
+		return
+	}
+
+	ut, err := getSessionOrRedirect(w, r)
+	if err != nil {
+		return
+	}
+
+	repopath := fmt.Sprintf("%s/%s", user, repo)
+	err = deleteValidHook(repopath, hookid, ut)
 	if err != nil {
 		// TODO: Check if failure is for other reasons and maybe return 500 instead
 		fail(w, http.StatusUnauthorized, err.Error())
@@ -80,13 +112,13 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	}
 	res, err := client.Post(fmt.Sprintf("/api/v1/repos/%s/hooks", repopath), data)
 	if err != nil {
-		log.Write("[error] failed to post: %s\n", err.Error())
+		log.Write("[error] failed to post: %s", err.Error())
 		return fmt.Errorf("Hook creation failed: %s", err.Error())
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		log.Write("[error] non-OK response: %s\n", res.Status)
+		log.Write("[error] non-OK response: %s", res.Status)
 		return fmt.Errorf("Hook creation failed: %s", res.Status)
 	}
 
@@ -94,22 +126,26 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 	return linkToRepo(usertoken.Username, repopath)
 }
 
-func deleteValidHook(repopath string, id int) {
+func deleteValidHook(repopath string, id int, usertoken gweb.UserToken) error {
 	log.Write("Deleting %d from %s\n", id, repopath)
 
 	client := ginclient.New(serveralias)
-	err := client.LoadToken()
-	if err != nil {
-		log.Write("[error] failed to load token %s\n", err.Error())
-		return
-	}
+	client.UserToken = usertoken
+
 	res, err := client.Delete(fmt.Sprintf("/api/v1/repos/%s/hooks/%d", repopath, id))
 	if err != nil {
-		log.Write("[error] bad response from server %s\n", err.Error())
-		return
+		log.Write("[error] bad response from server %s", err.Error())
+		return err
 	}
 	defer res.Body.Close()
-	// fmt.Printf("Got response: %s\n", res.Status)
-	// bdy, _ := ioutil.ReadAll(res.Body)
-	// fmt.Println(string(bdy))
+	log.Write("[info] removed hook for %s", repopath)
+
+	log.Write("[info] removing repository -> token link")
+	err = rmTokenRepoLink(repopath)
+	if err != nil {
+		log.Write("[error] failed to delete token link: %s", err.Error())
+		// don't fail
+	}
+
+	return nil
 }

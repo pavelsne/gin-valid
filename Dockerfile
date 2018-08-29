@@ -27,7 +27,7 @@ VOLUME ["/gin-valid/"]
 ENV GINVALIDHOME /gin-valid/
 ENV GIN_CONFIG_DIR /gin-valid/config/client
 
-COPY ./gin-valid /usr/local/bin/.
-
 ENTRYPOINT gin-valid --config=/config/cfg.json
 EXPOSE 3033
+
+COPY ./gin-valid /usr/local/bin/.

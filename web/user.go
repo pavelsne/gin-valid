@@ -30,8 +30,24 @@ import (
 
 type repoHooksInfo struct {
 	gogs.Repository
-	Hooks map[string]bool
+	Hooks map[string]ginhook
 }
+
+type ginhook struct {
+	Validator string
+	ID        int64
+	State     hookstate
+}
+
+type hookstate uint8
+
+const (
+	hookenabled hookstate = iota
+	hookdisabled
+	hookunauthed
+	hookbadconf
+	hooknone
+)
 
 func cookieExp() time.Time {
 	return time.Now().Add(7 * 24 * time.Hour)
@@ -211,25 +227,18 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
-		log.Write("[Error] failed to render repository list page")
+		log.Write("[Error] failed to render repository list page: %s", err.Error())
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	repos := make([]repoHooksInfo, len(userrepos))
 
-	// TODO: check that we have a token configured for each repository with a
-	// hook.
-	// TODO: if a validator is present but disabled warn the user that a
-	// matching hook exists (which means it was created at some point), but it
-	// is disabled and offer to enable it. This required differentiating
-	// between Enabled, Disabled, and Not Found, so the repohooks map values
-	// need to be ternary.
-
+	// TODO: Enum for hook states (see issue #5)
 	for idx, rinfo := range userrepos {
 		repohooks, err := getRepoHooks(cl, rinfo.FullName)
 		if err != nil {
 			// simply initialise the map for now
-			repohooks = make(map[string]bool)
+			repohooks = make(map[string]ginhook)
 		}
 		repos[idx] = repoHooksInfo{rinfo, repohooks}
 	}
@@ -255,7 +264,7 @@ func matchValidator(path string) (string, error) {
 
 // getRepoHooks queries the main GIN server and determines which validators are
 // enabled via hooks (true), which are configured but disabled (false)
-func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error) {
+func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, error) {
 	// fetch all hooks
 	res, err := cl.Get(path.Join("api", "v1", "repos", repopath, "hooks"))
 	if err != nil {
@@ -268,23 +277,23 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error
 		log.Write("hook request for %s returned non-OK exit status: %s", repopath, res.Status)
 		return nil, fmt.Errorf("hook request returned non-OK exit status: %s", res.Status)
 	}
-	var ginhooks []gogs.Hook
+	var gogshooks []gogs.Hook
 	defer gweb.CloseRes(res.Body)
-	b, err := ioutil.ReadAll(res.Body) // ignore potential read error on res.Body; catch later when trying to unmarshal
+	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		// failed to read response body
 		log.Write("failed to read response for %s", repopath)
 		return nil, fmt.Errorf("failed to read response")
 	}
-	err = json.Unmarshal(b, &ginhooks)
+	err = json.Unmarshal(b, &gogshooks)
 	if err != nil {
 		// failed to parse response body
 		log.Write("failed to parse hooks list for %s", repopath)
 		return nil, fmt.Errorf("failed to parse hooks list")
 	}
 
-	hooks := make(map[string]bool)
-	for _, hook := range ginhooks {
+	hooks := make(map[string]ginhook)
+	for _, hook := range gogshooks {
 		// parse URL to get validator
 		hookurl, err := url.Parse(hook.Config["url"])
 		if err != nil {
@@ -309,20 +318,22 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]bool, error
 				break
 			}
 		}
+		var state hookstate
 		if hook.Active && pushenabled {
 			log.Write("found %s hook for %s", validator, repopath)
-			hooks[validator] = true
+			state = hookenabled
 		} else {
 			log.Write("found disabled or invalid %s hook for %s", validator, repopath)
-			hooks[validator] = false
+			state = hookdisabled
 		}
+		hooks[validator] = ginhook{validator, hook.ID, state}
 		// TODO: Check if the same validator is found twice
 	}
 	// add supported validators that were not found and mark them disabled
 	supportedValidators := config.Read().Settings.Validators
 	for _, validator := range supportedValidators {
 		if _, ok := hooks[validator]; !ok {
-			hooks[validator] = false
+			hooks[validator] = ginhook{validator, -1, hooknone}
 		}
 	}
 	return hooks, nil
@@ -368,14 +379,14 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, err = tmpl.Parse(templates.RepoPage)
 	if err != nil {
-		log.Write("[Error] failed to render repository page")
+		log.Write("[Error] failed to render repository page: %s", err.Error())
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 
 	hooks, err := getRepoHooks(cl, repopath)
 	if err != nil {
-		hooks = make(map[string]bool)
+		hooks = make(map[string]ginhook)
 	}
 	repohi := repoHooksInfo{repoinfo, hooks}
 	tmpl.Execute(w, &repohi)
