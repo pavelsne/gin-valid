@@ -348,6 +348,7 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
+		log.Write("[Info] %s: Redirecting to login", err.Error())
 		return
 	}
 

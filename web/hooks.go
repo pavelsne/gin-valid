@@ -30,6 +30,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	validator := strings.ToLower(vars["validator"])
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
+		log.Write("[Info] %s: Redirecting to login", err.Error())
 		return
 	}
 	if !helpers.SupportedValidator(validator) {
@@ -64,6 +65,7 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
+		log.Write("[Info] %s: Redirecting to login", err.Error())
 		return
 	}
 
