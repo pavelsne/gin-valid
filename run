@@ -8,7 +8,7 @@ go build
 docker build --tag=ginvalid .
 
 # copy init server data to live location
-srvdata="/tmp/gin-valid-data-${RANDOM}"
+srvdata="/tmp/gin-valid-data-$(date +'%s')"
 cp -a "./srvdata/." "${srvdata}"
 
 configdir="${srvdata}/config"

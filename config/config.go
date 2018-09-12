@@ -15,9 +15,10 @@ type Directories struct {
 	Temp   string `json:"temp"`
 	Result string `json:"result"`
 	Log    string `json:"log"`
+	Tokens string `json:"tokens"`
 }
 
-// Denotations provide any freuquently used file names or other denotations
+// Denotations provide any frequently used file names or other denotations
 // e.g. validation result files, badge or result folder names.
 type Denotations struct {
 	LogFile              string `json:"logfile"`
@@ -69,6 +70,7 @@ var defaultCfg = ServerCfg{
 		Temp:   filepath.Join(os.Getenv("GINVALIDHOME"), "tmp"),
 		Log:    filepath.Join(os.Getenv("GINVALIDHOME"), "log"),
 		Result: filepath.Join(os.Getenv("GINVALIDHOME"), "results"),
+		Tokens: filepath.Join(os.Getenv("GINVALIDHOME"), "tokens"),
 	},
 	Denotations{
 		LogFile:              "ginvalid.log",

@@ -367,7 +367,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("bad request"))
 		return
 	}
-	if !validateHookSecret(b, secret) {
+	if !checkHookSecret(b, secret) {
 		log.Write("[Error] authorisation failed: bad secret")
 		fail(w, http.StatusBadRequest, "bad request")
 		return
@@ -399,10 +399,9 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: Use the payload data to check if the specific commit has already
 	// been validated
 
-	// get the username + token from the registered hooks map
-
-	ut, ok := hookregs[repopath]
-	if !ok {
+	// get the token for this repository
+	ut, err := getTokenByRepo(repopath)
+	if err != nil {
 		// We don't have a valid token for this repository: can't clone
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, http.StatusUnauthorized, msg)

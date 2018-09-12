@@ -42,6 +42,7 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/login", web.Login)
 	r.HandleFunc("/repos/{user}", web.ListRepos)
 	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook)
+	r.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", web.DisableHook)
 	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo)
 }
 
@@ -99,6 +100,8 @@ func main() {
 		}
 		config.Set(srvcfg)
 	}
+
+	// TODO: Create missing directories defined in cfg
 
 	err = log.Init()
 	if err != nil {
