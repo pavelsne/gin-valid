@@ -25,9 +25,9 @@ func saveToken(ut gweb.UserToken) error {
 	return encoder.Encode(ut)
 }
 
-// loadUserToken reads a token from disk using the username as filename.
+// getTokenByUsername reads a token from disk using the username as filename.
 // The location is defined by config.Dir.Tokens.
-func loadUserToken(username string) (gweb.UserToken, error) {
+func getTokenByUsername(username string) (gweb.UserToken, error) {
 	cfg := config.Read()
 	filename := filepath.Join(cfg.Dir.Tokens, username)
 	return loadToken(filename)
