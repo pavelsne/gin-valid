@@ -205,7 +205,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	user := vars["user"]
+	user, ok := vars["user"]
+	if !ok {
+		// redirect to logged in user
+		user = ut.Username
+		http.Redirect(w, r, fmt.Sprintf("/repos/%s", user), http.StatusFound)
+		return
+	}
 	cl := ginclient.New(serveralias)
 	cl.UserToken = ut
 
