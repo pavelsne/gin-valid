@@ -34,6 +34,7 @@ Options:
   `
 
 func registerRoutes(r *mux.Router) {
+	r.StrictSlash(true)
 	r.HandleFunc("/", web.Root)
 	r.HandleFunc("/pubvalidate", web.PubValidate)
 	r.HandleFunc("/validate/{validator}/{user}/{repo}", web.Validate)
