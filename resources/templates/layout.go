@@ -1,5 +1,9 @@
 package templates
 
+// TODO: Switch Login || Logout
+
+// Layout is the main site template. It includes the header and footer and
+// embeds the content for every other page.
 var Layout = `
 {{ define "layout" }}
 <!DOCTYPE html>
@@ -22,7 +26,10 @@ var Layout = `
                         <a class="item brand" href="https://gin.g-node.org/">
                             <img class="ui mini image" src="https://gin.g-node.org/img/favicon.png">
                         </a>
-                        <a class="item" href="https://gin.g-node.org/">Back to gin</a>
+                        <a class="item" href="https://gin.g-node.org/">Back to GIN</a>
+                        <a class="item" href="/repos">Repositories</a>
+                        <a class="item" href="/pubvalidate">One-time validation</a>
+                        <a class="item" href="/login">Login</a>
                     </div>
                 </div>
             </div>
@@ -48,7 +55,7 @@ var Layout = `
                             <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/imprint" target="_blank">Imprint</a>
                             <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/contact" target="_blank">Contact</a>
                             <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/Terms+of+Use" target="_blank">Terms of Use</a>
-    
+
                             <div class="ui supersmall">
                                 Hosted by:
                                 <img class="ui bmbf image" src="https://web.gin.g-node.org/img/lmu.png"/>
