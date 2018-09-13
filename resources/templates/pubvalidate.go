@@ -8,7 +8,7 @@ var PubValidate = `
 Enter the full name of a GIN repository (user/repository) below and select a validator to run:
 <div>
     <form action="/pubvalidate" method="post">
-    <p>Repository name: <input type="text" name="repopath"></p>
+    <p>Repository name: <input type="text" name="repopath"> <input type="submit" value="BIDS"></p>
     </form>
 </div>
 
