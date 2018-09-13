@@ -346,13 +346,6 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
 	// TODO: Simplify/split this function
-	if r.Method != http.MethodPost {
-		// Do nothing
-		log.Write("[Error] no post request: %s", r.Method)
-		// TODO: Redirect to results
-		return
-	}
-
 	secret := r.Header.Get("X-Gogs-Signature")
 
 	var hookdata gogs.PushPayload
