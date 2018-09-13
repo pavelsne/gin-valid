@@ -259,10 +259,18 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	return 0, nil
 }
 
-// Root renders the root page of the gin-valid service, which allows the user
+// Root handles the root path of the service. If the user is logged in, it
+// redirects to the user's repository listing. If the user is not logged in, it
+// redirects to the login form.
+func Root(w http.ResponseWriter, r *http.Request) {
+	// Since the /repos path does the same, let's just redirect to that
+	http.Redirect(w, r, "/repos", http.StatusFound)
+}
+
+// PubValidateGet renders the one-time validation form, which allows the user
 // to manually run a validator on a publicly accessible repository, without
 // using a web hook.
-func Root(w http.ResponseWriter, r *http.Request) {
+func PubValidateGet(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		tmpl := template.New("layout")
 		tmpl, err := tmpl.Parse(templates.Layout)
@@ -271,7 +279,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 			fail(w, http.StatusInternalServerError, "something went wrong")
 			return
 		}
-		tmpl, err = tmpl.Parse(templates.Root)
+		tmpl, err = tmpl.Parse(templates.PubValidate)
 		if err != nil {
 			log.Write("[Error] failed to render root page")
 			fail(w, http.StatusInternalServerError, "something went wrong")
@@ -281,15 +289,9 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// PubValidate parses the POST data from the root form and calls the validator
-// using the built-in ServiceWaiter.
-func PubValidate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		// Do nothing
-		log.Write("[Error] no post request: %s", r.Method)
-		return
-	}
-
+// PubValidatePost parses the POST data from the root form and calls the
+// validator using the built-in ServiceWaiter.
+func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	srvcfg := config.Read()
 	ginuser := srvcfg.Settings.GINUser
 
