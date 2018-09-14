@@ -20,10 +20,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// EnableHook creates a new hook on the server for the specific repository.
 func EnableHook(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		return
-	}
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]
@@ -47,10 +45,8 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
 }
 
+// DisableHook removes a hook from the server.
 func DisableHook(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		return
-	}
 	vars := mux.Vars(r)
 	user := vars["user"]
 	repo := vars["repo"]

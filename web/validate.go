@@ -271,22 +271,20 @@ func Root(w http.ResponseWriter, r *http.Request) {
 // to manually run a validator on a publicly accessible repository, without
 // using a web hook.
 func PubValidateGet(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		tmpl := template.New("layout")
-		tmpl, err := tmpl.Parse(templates.Layout)
-		if err != nil {
-			log.Write("[Error] failed to parse html layout page")
-			fail(w, http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl, err = tmpl.Parse(templates.PubValidate)
-		if err != nil {
-			log.Write("[Error] failed to render root page")
-			fail(w, http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl.Execute(w, nil)
+	tmpl := template.New("layout")
+	tmpl, err := tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] failed to parse html layout page")
+		fail(w, http.StatusInternalServerError, "something went wrong")
+		return
 	}
+	tmpl, err = tmpl.Parse(templates.PubValidate)
+	if err != nil {
+		log.Write("[Error] failed to render root page")
+		fail(w, http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	tmpl.Execute(w, nil)
 }
 
 // PubValidatePost parses the POST data from the root form and calls the

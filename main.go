@@ -39,14 +39,15 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/pubvalidate", web.PubValidateGet).Methods("GET")
 	r.HandleFunc("/pubvalidate", web.PubValidatePost).Methods("POST")
 	r.HandleFunc("/validate/{validator}/{user}/{repo}", web.Validate).Methods("POST")
-	r.HandleFunc("/status/{validator}/{user}/{repo}", web.Status)
-	r.HandleFunc("/results/{validator}/{user}/{repo}", web.Results)
-	r.HandleFunc("/login", web.Login)
-	r.HandleFunc("/repos", web.ListRepos)
-	r.HandleFunc("/repos/{user}", web.ListRepos)
-	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook)
-	r.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", web.DisableHook)
-	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo)
+	r.HandleFunc("/status/{validator}/{user}/{repo}", web.Status).Methods("GET")
+	r.HandleFunc("/results/{validator}/{user}/{repo}", web.Results).Methods("GET")
+	r.HandleFunc("/login", web.LoginGet).Methods("GET")
+	r.HandleFunc("/login", web.LoginPost).Methods("POST")
+	r.HandleFunc("/repos", web.ListRepos).Methods("GET")
+	r.HandleFunc("/repos/{user}", web.ListRepos).Methods("GET")
+	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook).Methods("GET")
+	r.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", web.DisableHook).Methods("GET")
+	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo).Methods("GET")
 }
 
 func startupCheck(srvcfg config.ServerCfg) {
