@@ -130,48 +130,48 @@ func doLogin(username, password string) (string, error) {
 	return sessionid, err
 }
 
-// Login renders the login form and logs in the user to the GIN server, storing
-// a session token.
-func Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		log.Write("Login page")
-		tmpl := template.New("layout")
-		tmpl, err := tmpl.Parse(templates.Layout)
-		if err != nil {
-			log.Write("[Error] failed to parse html layout page")
-			fail(w, http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl, err = tmpl.Parse(templates.Login)
-		if err != nil {
-			log.Write("[Error] failed to render login page")
-			fail(w, http.StatusInternalServerError, "something went wrong")
-			return
-		}
-		tmpl.Execute(w, nil)
-	} else if r.Method == http.MethodPost {
-		log.Write("Doing login")
-		r.ParseForm()
-		username := r.Form["username"][0]
-		password := r.Form["password"][0]
-		sessionid, err := doLogin(username, password)
-		if err != nil {
-			log.Write("[error] Login failed: %s", err.Error())
-			fail(w, http.StatusUnauthorized, "authentication failed")
-			return
-		}
-
-		cfg := config.Read()
-		cookie := http.Cookie{
-			Name:    cfg.Settings.CookieName,
-			Value:   sessionid,
-			Expires: cookieExp(),
-			Secure:  false, // TODO: Switch when we go live
-		}
-		http.SetCookie(w, &cookie)
-		// Redirect to repo listing
-		http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
+// LoginGet renders the login form
+func LoginGet(w http.ResponseWriter, r *http.Request) {
+	log.Write("Login page")
+	tmpl := template.New("layout")
+	tmpl, err := tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.Write("[Error] failed to parse html layout page")
+		fail(w, http.StatusInternalServerError, "something went wrong")
+		return
 	}
+	tmpl, err = tmpl.Parse(templates.Login)
+	if err != nil {
+		log.Write("[Error] failed to render login page")
+		fail(w, http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	tmpl.Execute(w, nil)
+}
+
+// LoginPost logs in the user to the GIN server, storing a session token.
+func LoginPost(w http.ResponseWriter, r *http.Request) {
+	log.Write("Doing login")
+	r.ParseForm()
+	username := r.Form["username"][0]
+	password := r.Form["password"][0]
+	sessionid, err := doLogin(username, password)
+	if err != nil {
+		log.Write("[error] Login failed: %s", err.Error())
+		fail(w, http.StatusUnauthorized, "authentication failed")
+		return
+	}
+
+	cfg := config.Read()
+	cookie := http.Cookie{
+		Name:    cfg.Settings.CookieName,
+		Value:   sessionid,
+		Expires: cookieExp(),
+		Secure:  false, // TODO: Switch when we go live
+	}
+	http.SetCookie(w, &cookie)
+	// Redirect to repo listing
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
 }
 
 func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToken, error) {
@@ -194,10 +194,6 @@ func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToke
 // accessible) by a given user and renders the page which displays the
 // repositories and their validation status.
 func ListRepos(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		return
-	}
-
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
 		log.Write("[Info] %s: Redirecting to login", err.Error())
@@ -205,7 +201,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	user := vars["user"]
+	user, ok := vars["user"]
+	if !ok {
+		// redirect to logged in user
+		user = ut.Username
+		http.Redirect(w, r, fmt.Sprintf("/repos/%s", user), http.StatusFound)
+		return
+	}
 	cl := ginclient.New(serveralias)
 	cl.UserToken = ut
 
@@ -342,10 +344,6 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 // ShowRepo renders the repository information page where the user can enable or
 // disable validator hooks.
 func ShowRepo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		return
-	}
-
 	ut, err := getSessionOrRedirect(w, r)
 	if err != nil {
 		log.Write("[Info] %s: Redirecting to login", err.Error())
