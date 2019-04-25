@@ -15,7 +15,8 @@ import (
 // The location is defined by config.Dir.Tokens.
 func saveToken(ut gweb.UserToken) error {
 	cfg := config.Read()
-	filename := filepath.Join(cfg.Dir.Tokens, ut.Username)
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
+	filename := filepath.Join(tokendir, ut.Username)
 	tokenfile, err := os.Create(filename)
 	defer tokenfile.Close()
 	if err != nil {
@@ -29,7 +30,8 @@ func saveToken(ut gweb.UserToken) error {
 // The location is defined by config.Dir.Tokens.
 func getTokenByUsername(username string) (gweb.UserToken, error) {
 	cfg := config.Read()
-	filename := filepath.Join(cfg.Dir.Tokens, username)
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
+	filename := filepath.Join(tokendir, username)
 	return loadToken(filename)
 }
 
@@ -51,7 +53,7 @@ func loadToken(path string) (gweb.UserToken, error) {
 // linkToSession links a sessionID to a user's token.
 func linkToSession(username string, sessionid string) error {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
 	return os.Symlink(utfile, sidfile)
@@ -61,7 +63,7 @@ func linkToSession(username string, sessionid string) error {
 // the user's cookie store.
 func getTokenBySession(sessionid string) (gweb.UserToken, error) {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	filename := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
 	return loadToken(filename)
 }
@@ -71,7 +73,7 @@ func getTokenBySession(sessionid string) (gweb.UserToken, error) {
 // web hook is triggered.
 func linkToRepo(username string, repopath string) error {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-repo", b32(repopath))
 	return os.Symlink(utfile, sidfile)
@@ -80,7 +82,7 @@ func linkToRepo(username string, repopath string) error {
 // getTokenByRepo loads a user's access token using a repository path.
 func getTokenByRepo(repopath string) (gweb.UserToken, error) {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	filename := filepath.Join(tokendir, "by-repo", b32(repopath))
 	return loadToken(filename)
 }
@@ -89,7 +91,7 @@ func getTokenByRepo(repopath string) (gweb.UserToken, error) {
 // clone the repository.
 func rmTokenRepoLink(repopath string) error {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	filename := filepath.Join(tokendir, "by-repo", b32(repopath))
 	return os.Remove(filename)
 }

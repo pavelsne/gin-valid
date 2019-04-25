@@ -98,6 +98,10 @@ func createValidHook(repopath string, validator string, usertoken gweb.UserToken
 
 	host := fmt.Sprintf("%s:%s", cfg.Settings.RootURL, cfg.Settings.Port)
 	u, err := url.Parse(host)
+	if err != nil {
+		log.Write("[error] failed to parse url: %s", err.Error())
+		return fmt.Errorf("Hook creation failed: %s", err.Error())
+	}
 	u.Path = path.Join(u.Path, "validate", validator, repopath)
 	hookconfig["url"] = u.String()
 	hookconfig["content_type"] = "json"
