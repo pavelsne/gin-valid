@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:19.04
 
 RUN apt update
 RUN apt install -y \
@@ -13,6 +13,8 @@ RUN npm install -g bids-validator
 RUN mkdir -p /gin-valid/results/
 RUN mkdir -p /gin-valid/tmp/
 RUN mkdir -p /gin-valid/config
+RUN mkdir -p /gin-valid/tokens/by-sessionid
+RUN mkdir -p /gin-valid/tokens/by-repo
 
 VOLUME ["/gin-valid/"]
 
