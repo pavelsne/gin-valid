@@ -51,7 +51,7 @@ func loadToken(path string) (gweb.UserToken, error) {
 // linkToSession links a sessionID to a user's token.
 func linkToSession(username string, sessionid string) error {
 	cfg := config.Read()
-	tokendir := cfg.Dir.Tokens
+	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
 	return os.Symlink(utfile, sidfile)
