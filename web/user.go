@@ -81,7 +81,7 @@ func generateNewSessionID() (string, error) {
 
 func doLogin(username, password string) (string, error) {
 	gincl := ginclient.New(serveralias)
-	glog.Init("")
+	glog.Init()
 	cfg := config.Read()
 	clientID := cfg.Settings.ClientID
 

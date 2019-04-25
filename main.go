@@ -81,7 +81,7 @@ func main() {
 	srvcfg := config.Read()
 
 	// Parse commandline arguments
-	args, err := docopt.ParseArgs(usage, nil, "v1.0.0")
+	args, err := docopt.ParseArgs(usage, nil, "v1.0.1")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n[Error] parsing cli arguments: '%s', abort...\n\n", err.Error())
 		os.Exit(-1)
