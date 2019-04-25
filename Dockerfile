@@ -1,12 +1,21 @@
-FROM ubuntu:19.04
+FROM golang:alpine
 
-RUN apt update
-RUN apt install -y \
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories \
+  && apk --no-cache --no-progress add \
+    bash \
+    curl \
     git \
-    git-annex \
-    golang \
     nodejs \
-    npm
+    npm \
+    openssh
+
+RUN mkdir /git-annex
+ENV PATH="${PATH}:/git-annex/git-annex.linux"
+RUN apk add --no-cache git openssh curl
+RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kitenet.net/git-annex/linux/current/git-annex-standalone-amd64.tar.gz
+RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
+RUN apk del --no-cache curl
+RUN ln -s /git-annex/git-annex.linux/git-annex-shell /bin/git-annex-shell
 
 RUN npm install -g bids-validator
 
