@@ -123,7 +123,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	// efficient by only downloading the content in the directories which are
 	// specified in the validator config (if it exists).
 
-	glog.Init("")
+	glog.Init()
 	clonechan := make(chan git.RepoFileStatus)
 	os.Chdir(tmpdir)
 	go gcl.CloneRepo(repopath, clonechan)
