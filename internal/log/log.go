@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/G-Node/gin-valid/config"
+	"github.com/G-Node/gin-valid/internal/config"
 )
 
 var logfile *os.File

@@ -4,8 +4,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/G-Node/gin-valid/log"
-	"github.com/G-Node/gin-valid/resources/templates"
+	"github.com/G-Node/gin-valid/internal/log"
+	"github.com/G-Node/gin-valid/internal/resources/templates"
 )
 
 // fail logs an error and renders an error page with the given message,
