@@ -14,7 +14,7 @@ var Layout = `
 		<link rel="stylesheet" href="https://gin.g-node.org/assets/octicons-4.3.0/octicons.min.css">
 		<link rel="stylesheet" href="https://gin.g-node.org/css/semantic-2.3.1.min.css">
 		<link rel="stylesheet" href="https://gin.g-node.org/css/gogs.css?v=921e73e55b4d707a9a72151df987dce1">
-		<title>Sign In - GIN Valid</title>
+		<title>GIN Valid</title>
 		<link rel="stylesheet" href="https://gin.g-node.org/css/custom.css">
 		<meta name="twitter:card" content="summary" />
 		<meta name="twitter:site" content="@gnode" />
