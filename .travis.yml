@@ -1,29 +1,23 @@
 language: go
 
-dist: trusty
-sudo: required
+dist: xenial
+
+env:
+  global:
+    - GO111MODULE=on
+    - GOPROXY=https://proxy.golang.org
 
 matrix:
   include:
-    - go: "1.10.x"
     - go: "1.11.x"
+    - go: "1.12.x"
     - go: tip
   allow_failures:
     - go: tip
 
 install:
-  # tools
-  - go get github.com/golang/lint/golint
-  # dependencies
-  - go get github.com/G-Node/gin-cli
-  - go get github.com/gorilla/mux
-  - go get github.com/gorilla/handlers
-  - go get github.com/docopt/docopt-go
-  # import path symlink for forks
-  - if [ ! -d ${GOPATH}/src/github.com/G-Node/gin-valid ]; then ln -vs $(pwd) ${GOPATH}/src/github.com/G-Node/gin-valid; fi
   - go vet ./...
   - gofmt -s -l .
-  - golint github.com/G-Node/gin-valid...
 
 script:
-  - go build .
+  - go build ./cmd/ginvalid
