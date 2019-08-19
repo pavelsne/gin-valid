@@ -16,7 +16,7 @@ import (
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/helpers"
 	"github.com/G-Node/gin-valid/internal/log"
-	gogs "github.com/gogits/go-gogs-client"
+	"github.com/gogs/go-gogs-client"
 	"github.com/gorilla/mux"
 )
 
