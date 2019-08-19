@@ -3,8 +3,8 @@ package helpers
 import (
 	"os"
 
-	"github.com/G-Node/gin-valid/config"
-	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/internal/config"
+	"github.com/G-Node/gin-valid/internal/log"
 )
 
 // ValidDirectory checks whether a given path exists and refers to a valid directory.

@@ -1,22 +1,49 @@
-FROM golang:alpine
+# BUILDER IMAGE
+FROM golang:alpine AS binbuilder
 
+# Build package deps
 RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories \
   && apk --no-cache --no-progress add \
     bash \
     curl \
     git \
-    nodejs \
-    npm \
     openssh
 
+# Download git-annex to builder and extract
 RUN mkdir /git-annex
-ENV PATH="${PATH}:/git-annex/git-annex.linux"
-RUN apk add --no-cache git openssh curl
 RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kitenet.net/git-annex/linux/current/git-annex-standalone-amd64.tar.gz
 RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
-RUN apk del --no-cache curl
-RUN ln -s /git-annex/git-annex.linux/git-annex-shell /bin/git-annex-shell
 
+ENV GOPROXY https://proxy.golang.org
+RUN go version
+COPY ./go.mod ./go.sum /gin-valid/
+WORKDIR /gin-valid
+
+# download deps before bringing in the main package
+RUN go mod download
+COPY ./cmd /gin-valid/cmd/
+COPY ./internal /gin-valid/internal/
+RUN go build ./cmd/ginvalid
+
+### ============================ ###
+
+# RUNNER IMAGE
+FROM alpine:latest
+
+# Runtime deps
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories \
+        && apk --no-cache --no-progress add \
+        bash \
+        git \
+        nodejs \
+        npm \
+        openssh
+
+# Copy git-annex from builder image
+COPY --from=binbuilder /git-annex /git-annex
+ENV PATH="${PATH}:/git-annex/git-annex.linux"
+
+# Install the BIDS validator
 RUN npm install -g bids-validator
 
 RUN mkdir -p /gin-valid/results/
@@ -32,16 +59,8 @@ ENV GIN_CONFIG_DIR /gin-valid/config/client
 
 ENV GOPATH /go
 
-# getting repo version so we have a base snapshot of the upstream gin-valid and
-# (more importantly) its dependencies, so that docker doesn't have to download
-# everything every time a file changes in the local directory
-RUN go get -v github.com/G-Node/gin-valid
+# Copy binary and resources into runner image
+COPY --from=binbuilder /gin-valid/ginvalid /
 
-COPY . $GOPATH/src/github.com/G-Node/gin-valid
-WORKDIR $GOPATH/src/github.com/G-Node/gin-valid
-
-RUN go get -v ./...
-RUN go build
-
-ENTRYPOINT ./gin-valid --config=/config/cfg.json
+ENTRYPOINT ./ginvalid --config=/gin-valid/config/cfg.json
 EXPOSE 3033

@@ -13,10 +13,10 @@ import (
 
 	"github.com/G-Node/gin-cli/ginclient"
 	gweb "github.com/G-Node/gin-cli/web"
-	"github.com/G-Node/gin-valid/config"
-	"github.com/G-Node/gin-valid/helpers"
-	"github.com/G-Node/gin-valid/log"
-	gogs "github.com/gogits/go-gogs-client"
+	"github.com/G-Node/gin-valid/internal/config"
+	"github.com/G-Node/gin-valid/internal/helpers"
+	"github.com/G-Node/gin-valid/internal/log"
+	"github.com/gogs/go-gogs-client"
 	"github.com/gorilla/mux"
 )
 

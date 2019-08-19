@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	gweb "github.com/G-Node/gin-cli/web"
-	"github.com/G-Node/gin-valid/config"
-	"github.com/G-Node/gin-valid/log"
+	"github.com/G-Node/gin-valid/internal/config"
+	"github.com/G-Node/gin-valid/internal/log"
 )
 
 // saveToken writes a token to disk using the username as filename.

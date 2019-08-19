@@ -19,12 +19,13 @@ import (
 	glog "github.com/G-Node/gin-cli/ginclient/log"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/gin-cli/git/shell"
-	"github.com/G-Node/gin-valid/config"
-	"github.com/G-Node/gin-valid/helpers"
-	"github.com/G-Node/gin-valid/log"
-	"github.com/G-Node/gin-valid/resources"
-	"github.com/G-Node/gin-valid/resources/templates"
+	"github.com/G-Node/gin-valid/internal/config"
+	"github.com/G-Node/gin-valid/internal/helpers"
+	"github.com/G-Node/gin-valid/internal/log"
+	"github.com/G-Node/gin-valid/internal/resources"
+	"github.com/G-Node/gin-valid/internal/resources/templates"
 	gogs "github.com/gogits/go-gogs-client"
+
 	"github.com/gorilla/mux"
 )
 
