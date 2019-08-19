@@ -19,7 +19,7 @@ RUN go version
 COPY ./go.mod ./go.sum /gin-valid/
 WORKDIR /gin-valid
 
-# download deps before bringing in the main package
+# download deps before bringing in the sources
 RUN go mod download
 COPY ./cmd /gin-valid/cmd/
 COPY ./internal /gin-valid/internal/
@@ -52,15 +52,12 @@ RUN mkdir -p /gin-valid/config
 RUN mkdir -p /gin-valid/tokens/by-sessionid
 RUN mkdir -p /gin-valid/tokens/by-repo
 
-VOLUME ["/gin-valid/"]
-
 ENV GINVALIDHOME /gin-valid/
+WORKDIR /gin-valid
 ENV GIN_CONFIG_DIR /gin-valid/config/client
-
-ENV GOPATH /go
 
 # Copy binary and resources into runner image
 COPY --from=binbuilder /gin-valid/ginvalid /
 
-ENTRYPOINT ./ginvalid --config=/gin-valid/config/cfg.json
+ENTRYPOINT /ginvalid --config=/gin-valid/config/cfg.json
 EXPOSE 3033
