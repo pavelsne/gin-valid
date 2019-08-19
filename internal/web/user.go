@@ -153,8 +153,13 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 func LoginPost(w http.ResponseWriter, r *http.Request) {
 	log.Write("Doing login")
 	r.ParseForm()
-	username := r.Form["username"][0]
-	password := r.Form["password"][0]
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	if username == "" || password == "" {
+		log.Write("[error] Invalid form data")
+		fail(w, http.StatusUnauthorized, "authentication failed")
+		return
+	}
 	sessionid, err := doLogin(username, password)
 	if err != nil {
 		log.Write("[error] Login failed: %s", err.Error())
