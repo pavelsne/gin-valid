@@ -28,6 +28,11 @@ type Denotations struct {
 	ValidationConfigFile string `json:"valcfgfile"`
 }
 
+type GINAddresses struct {
+	WebURL string `json:"weburl"`
+	GitURL string `json:"giturl"`
+}
+
 // Settings provide the default server settings.
 // "Validators" currently only supports "BIDS".
 type Settings struct {
@@ -45,10 +50,11 @@ type Settings struct {
 // ServerCfg holds the config used to setup the gin validation server and
 // the paths to all required executables, temporary and permanent folders.
 type ServerCfg struct {
-	Settings Settings    `json:"settings"`
-	Exec     Executables `json:"executables"`
-	Dir      Directories `json:"directories"`
-	Label    Denotations `json:"denotations"`
+	Settings     Settings     `json:"settings"`
+	Exec         Executables  `json:"executables"`
+	Dir          Directories  `json:"directories"`
+	Label        Denotations  `json:"denotations"`
+	GINAddresses GINAddresses `json:"ginaddresses"`
 }
 
 var defaultCfg = ServerCfg{
@@ -78,6 +84,10 @@ var defaultCfg = ServerCfg{
 		ResultsFile:          "results.json",
 		ResultsBadge:         "results.svg",
 		ValidationConfigFile: "ginvalidation.yaml",
+	},
+	GINAddresses{
+		WebURL: "https://gin.g-node.org:443",
+		GitURL: "git@gin.g-node.org:22",
 	},
 }
 
