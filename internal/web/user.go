@@ -381,6 +381,11 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.New("layout")
+	funcmap := map[string]interface{}{
+		"ToLower": strings.ToLower,
+		"ToUpper": strings.ToUpper,
+	}
+	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
