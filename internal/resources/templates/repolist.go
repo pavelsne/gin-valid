@@ -1,7 +1,6 @@
 package templates
 
 // TODO: Stable access order of Hooks map
-// TODO: Map .ToLower func into this template to lowercase the $hookname in the URL
 const RepoList = `
 	{{ define "content" }}
 	<br/><br/>

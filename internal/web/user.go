@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -226,6 +227,11 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Got %d repos\n", len(userrepos))
 	tmpl := template.New("layout")
+	funcmap := map[string]interface{}{
+		"ToLower": strings.ToLower,
+		"ToUpper": strings.ToUpper,
+	}
+	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
