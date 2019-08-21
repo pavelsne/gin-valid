@@ -102,11 +102,11 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	repo := vars["repo"]
 	validator := strings.ToLower(vars["validator"])
 	if !helpers.SupportedValidator(validator) {
-		log.Write("[Error] unsupported validator '%s'\n", validator)
+		log.ShowWrite("[Error] unsupported validator '%s'\n", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
-	log.Write("[Info] '%s' results for repo '%s/%s'\n", validator, user, repo)
+	log.ShowWrite("[Info] '%s' results for repo '%s/%s'\n", validator, user, repo)
 
 	srvcfg := config.Read()
 	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo, srvcfg.Label.ResultsFolder)
@@ -114,13 +114,13 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)
 	if err != nil {
-		log.Write("[Error] serving '%s/%s' badge: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] serving '%s/%s' badge: %s\n", user, repo, err.Error())
 	}
 
 	fp = filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	content, err := ioutil.ReadFile(fp)
 	if err != nil {
-		log.Write("[Error] serving '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] serving '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
 		return
 	}
@@ -129,7 +129,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	var resBIDS BidsResultStruct
 	err = json.Unmarshal(content, &resBIDS)
 	if err != nil {
-		log.Write("[Error] unmarshalling '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] unmarshalling '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -138,13 +138,13 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.New("layout")
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
-		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.BidsResults)
 	if err != nil {
-		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
@@ -159,7 +159,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
-		log.Write("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
