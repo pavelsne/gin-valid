@@ -39,8 +39,8 @@ type BidsResultStruct struct {
 				Severity  string      `json:"severity"`
 				Reason    string      `json:"reason"`
 			} `json:"files"`
-			AdditionalFileCount int    `json:"additionalFileCount"`
-			Code                string `json:"code"`
+			AdditionalFileCount int `json:"additionalFileCount"`
+			Code                int `json:"code"`
 		} `json:"errors"`
 		Warnings []struct {
 			Key      string `json:"key"`
@@ -80,8 +80,8 @@ type BidsResultStruct struct {
 				Severity  string      `json:"severity"`
 				Reason    string      `json:"reason"`
 			} `json:"files"`
-			AdditionalFileCount int    `json:"additionalFileCount"`
-			Code                string `json:"code"`
+			AdditionalFileCount int `json:"additionalFileCount"`
+			Code                int `json:"code"`
 		} `json:"warnings"`
 		Ignored []interface{} `json:"ignored"`
 	} `json:"issues"`
