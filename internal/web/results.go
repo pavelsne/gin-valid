@@ -29,7 +29,7 @@ type BidsResultStruct struct {
 				Key  string `json:"key"`
 				Code int    `json:"code"`
 				File struct {
-					Name         string `json:"name"`
+					string       `json:"name"`
 					Path         string `json:"path"`
 					RelativePath string `json:"relativePath"`
 				} `json:"file"`
