@@ -42,7 +42,7 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s/hooks", repopath), http.StatusFound)
 }
 
 // DisableHook removes a hook from the server.
@@ -72,7 +72,7 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/repos/%s", ut.Username), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/repos/%s/hooks", repopath), http.StatusFound)
 }
 
 func checkHookSecret(data []byte, secret string) bool {

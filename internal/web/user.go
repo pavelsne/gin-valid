@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -153,8 +154,13 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 func LoginPost(w http.ResponseWriter, r *http.Request) {
 	log.Write("Doing login")
 	r.ParseForm()
-	username := r.Form["username"][0]
-	password := r.Form["password"][0]
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	if username == "" || password == "" {
+		log.Write("[error] Invalid form data")
+		fail(w, http.StatusUnauthorized, "authentication failed")
+		return
+	}
 	sessionid, err := doLogin(username, password)
 	if err != nil {
 		log.Write("[error] Login failed: %s", err.Error())
@@ -221,6 +227,11 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Got %d repos\n", len(userrepos))
 	tmpl := template.New("layout")
+	funcmap := map[string]interface{}{
+		"ToLower": strings.ToLower,
+		"ToUpper": strings.ToUpper,
+	}
+	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
@@ -370,6 +381,11 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl := template.New("layout")
+	funcmap := map[string]interface{}{
+		"ToLower": strings.ToLower,
+		"ToUpper": strings.ToUpper,
+	}
+	tmpl.Funcs(funcmap)
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")

@@ -10,6 +10,9 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/G-Node/gin-cli/ginclient"
+	cliconfig "github.com/G-Node/gin-cli/ginclient/config"
+	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/helpers"
 	"github.com/G-Node/gin-valid/internal/log"
@@ -67,12 +70,43 @@ func startupCheck(srvcfg config.ServerCfg) {
 	}
 	log.ShowWrite("[Warmup] using bids-validator v%s", strings.TrimSpace(outstr))
 
-	// Check gin client can reach server (non-fatal)
-	// web.CommCheck("ServiceWaiter", srvcfg.Settings.GPW)
-	// err = web.CommCheck("testuser", "a test password 42")
-	// if err != nil {
-	// 	log.ShowWrite("[Error] comm check with gin server failed '%s'", err.Error())
-	// }
+	commcheck(srvcfg)
+}
+
+func commcheck(srvcfg config.ServerCfg) {
+	clicfg := cliconfig.ServerCfg{}
+	webcfg, err := cliconfig.ParseWebString(srvcfg.GINAddresses.WebURL)
+	if err != nil {
+		log.ShowWrite("[Error] Web URL for GIN server %q could not be parsed: %s", srvcfg.GINAddresses.WebURL, err.Error())
+		os.Exit(-1)
+	}
+	gitcfg, err := cliconfig.ParseGitString(srvcfg.GINAddresses.GitURL)
+	if err != nil {
+		log.ShowWrite("[Error] Git URL for GIN server %q could not be parsed: %s", srvcfg.GINAddresses.GitURL, err.Error())
+		os.Exit(-1)
+	}
+	clicfg.Web = webcfg
+	clicfg.Git = gitcfg
+	hostkeystr, fingerprint, err := git.GetHostKey(gitcfg)
+	if err != nil {
+		log.ShowWrite("[Error] Failed to get host key for Git server %q: %s", gitcfg.AddressStr(), err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] Host key fingerprint for %q: %s", gitcfg.AddressStr(), fingerprint)
+	clicfg.Git.HostKey = hostkeystr
+	cliconfig.AddServerConf("gin", clicfg)
+	git.WriteKnownHosts()
+	if err != nil {
+		log.ShowWrite("[Error] Failed to write known hosts file: %s", err.Error())
+		os.Exit(-1)
+	}
+	cli := ginclient.New("gin")
+	err = cli.Login(srvcfg.Settings.GINUser, srvcfg.Settings.GINPassword, srvcfg.Settings.ClientID)
+	if err != nil {
+		log.ShowWrite("Failed to login to GIN server: %s", err.Error())
+		os.Exit(-1)
+	}
+	log.ShowWrite("[Warmup] GIN server configuration OK")
 }
 
 func main() {
