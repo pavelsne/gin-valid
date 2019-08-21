@@ -150,7 +150,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse results into html template and serve it
-	head := fmt.Sprintf("Validation for %s/%s", user, repo)
+	head := fmt.Sprintf("%s validation for %s/%s", strings.ToUpper(validator), user, repo)
 	info := struct {
 		Badge  template.HTML
 		Header string
