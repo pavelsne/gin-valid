@@ -78,14 +78,6 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 // and saves the results to the appropriate document for later viewing.
 func validateBIDS(valroot, resdir string) error {
 	srvcfg := config.Read()
-	// Create results folder if necessary
-	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	err := os.MkdirAll(resdir, os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
-		return fmt.Errorf("failed to generate results")
-	}
-
 	// Use validation config file if available
 	var validateNifti bool
 
@@ -129,7 +121,7 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
-	if err = cmd.Run(); err != nil {
+	if err := cmd.Run(); err != nil {
 		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s', '%s'",
 			valroot, err.Error(), serr.String(), "")
 
@@ -145,7 +137,7 @@ func validateBIDS(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
 		log.ShowWrite("[Error] writing results file for %q", valroot)
 	}
@@ -177,12 +169,6 @@ func validateBIDS(valroot, resdir string) error {
 // and saves the results to the appropriate document for later viewing.
 func validateNIX(valroot, resdir string) error {
 	srvcfg := config.Read()
-	// Create results folder if necessary
-	err := os.MkdirAll(resdir, os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
-		return fmt.Errorf("failed to generate results")
-	}
 
 	// TODO: Allow validator config that specifies file paths to validate
 	// For now we validate everything
@@ -205,7 +191,7 @@ func validateNIX(valroot, resdir string) error {
 		return nil
 	}
 
-	err = filepath.Walk(valroot, nixfinder)
+	err := filepath.Walk(valroot, nixfinder)
 	if err != nil {
 		log.ShowWrite("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
 		return fmt.Errorf("failed to search for NIX files in %q: %s", valroot, err.Error())
@@ -351,6 +337,15 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	repopathparts := strings.SplitN(repopath, "/", 2)
 	_, repo := repopathparts[0], repopathparts[1]
 	valroot := filepath.Join(tmpdir, repo)
+
+	// Create results folder if necessary
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	err = os.MkdirAll(resdir, os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
+		return http.StatusInternalServerError, fmt.Errorf("failed to generate results")
+	}
+
 	switch validator {
 	case "bids":
 		err = validateBIDS(valroot, resdir)
