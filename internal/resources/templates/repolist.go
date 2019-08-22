@@ -87,11 +87,11 @@ const RepoPage = `
 						<tr>
 							<td class="name text bold four wide"><a href="">{{$hookname | ToUpper}}</a></td>
 							{{if eq $hook.State 0}}
-								<td class="name nine wide"><a href="">RESULTS</a></td>
+								<td class="name nine wide"><a href="/results/{{$hookname | ToLower}}/{{$.FullName}}">RESULTS</a></td>
 								<td class="name three wide"><a href="/repos/{{$.FullName}}/{{$hook.ID}}/disable">DEACTIVATE</a></td>
 							{{else}}
 								<td class="name nine wide">N/A</td>
-								<td class="name three wide"><a href="/repos/{{$.FullName}}/{{$hookname}}/enable">ACTIVATE</a></td>
+								<td class="name three wide"><a href="/repos/{{$.FullName}}/{{$hookname | ToLower}}/enable">ACTIVATE</a></td>
 							{{end}}
 						</tr>
 					{{end}}

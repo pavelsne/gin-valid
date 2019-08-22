@@ -2,18 +2,45 @@ package templates
 
 var PubValidate = `
 {{ define "content" }}
-
-<br><br>
-<hr>
-Enter the full name of a GIN repository (user/repository) below and select a validator to run:
-<div>
-    <form action="/pubvalidate" method="post">
-    <p>Repository name: <input type="text" name="repopath"> <input type="submit" value="BIDS"></p>
-    </form>
-</div>
-
-<hr>
-Alternatively, you can <a href="/login">login</a> using your GIN account to set up automatic validation of your public and private repositories.
-
+	<div class="user signin">
+		<form class="ui form" action="/pubvalidate" method="post">
+			<h4 class="ui top attached segment">
+				Enter the full name of a GIN repository (user/repository) below and select a validator to run:
+			</h4>
+			<div class="ui attached segment">
+				<div class="required inline field left">
+					<label for="repopath">Repository name</label>
+					<input id="repopath" name="repopath" value="" autofocus required>
+					<button class="ui green button right">Submit</button>
+				</div>
+			</div>
+			<div class="ui attached segment">
+			<div class="ui segment field">
+				<h4>Validators</h4>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<input name="bids" type="checkbox" tabindex="0">
+						<label><strong>BIDS</strong> Brain Imaging Data Structure: link-to-bids-website</label>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<input name="nix" type="checkbox" tabindex="0">
+						<label><strong>NIX</strong> Neurosciene Information Exchange format link-to-nix-website</label>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<input name="odml" type="checkbox" tabindex="0">
+						<label><strong>odML</strong> Open Metadata Markup Language link-to-odml-website</label>
+					</div>
+				</div>
+			</div>
+			</div>
+			<div class="ui attached segment">
+				Alternatively, you can <a href="/login">login</a> using your GIN account to set up automatic validation of your public and private repositories.
+			</div>
+		</form>
+	</div>
 {{ end }}
 `
