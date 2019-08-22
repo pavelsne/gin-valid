@@ -241,7 +241,18 @@ func validateNIX(valroot, resdir string) error {
 	}
 
 	// We need this for both the writing of the result and the badge
+	errtag := []byte("ERROR")
+	warntag := []byte("WARNING")
+	var badge []byte
 	output := out.Bytes()
+	switch {
+	case bytes.Contains(output, errtag):
+		badge = []byte(resources.FailureBadge)
+	case bytes.Contains(output, warntag):
+		badge = []byte(resources.WarningBadge)
+	default:
+		badge = []byte(resources.SuccessBadge)
+	}
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
@@ -250,10 +261,7 @@ func validateNIX(valroot, resdir string) error {
 		log.ShowWrite("[Error] writing results file for %q", valroot)
 	}
 
-	// TODO: Parse results
-	content := resources.SuccessBadge
-
-	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
+	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
 		log.ShowWrite("[Error] writing results badge for %q", valroot)
 		// return err
