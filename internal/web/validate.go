@@ -133,7 +133,7 @@ func validateBids(valroot, resdir string) error {
 		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s', '%s'",
 			valroot, err.Error(), serr.String(), "")
 
-		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
+		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
 		if err != nil {
 			log.ShowWrite("[Error] writing results badge for %q", valroot)
 		}
@@ -151,16 +151,16 @@ func validateBids(valroot, resdir string) error {
 	}
 
 	// Write proper badge according to result
-	content := resources.BidsSuccess
+	content := resources.SuccessBadge
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
 		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
-		content = resources.BidsFailure
+		content = resources.FailureBadge
 	} else if len(parseBIDS.Issues.Errors) > 0 {
-		content = resources.BidsFailure
+		content = resources.FailureBadge
 	} else if len(parseBIDS.Issues.Warnings) > 0 {
-		content = resources.BidsWarning
+		content = resources.WarningBadge
 	}
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
