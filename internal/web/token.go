@@ -56,6 +56,9 @@ func linkToSession(username string, sessionid string) error {
 	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-sessionid", b32(sessionid))
+	// if it's already linked, this will fail; remove existing and relink
+	// this will also fix outdated tokens
+	os.Remove(sidfile)
 	return os.Symlink(utfile, sidfile)
 }
 
@@ -76,6 +79,9 @@ func linkToRepo(username string, repopath string) error {
 	tokendir, _ := filepath.Abs(cfg.Dir.Tokens)
 	utfile := filepath.Join(tokendir, username)
 	sidfile := filepath.Join(tokendir, "by-repo", b32(repopath))
+	// if it's already linked, this will fail; remove existing and relink
+	// this will also fix outdated tokens
+	os.Remove(sidfile)
 	return os.Symlink(utfile, sidfile)
 }
 
