@@ -74,11 +74,114 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 	return valcfg, nil
 }
 
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (int, error) {
-	log.ShowWrite("[Info] Commit hash: %s", commit)
+// validateBids runs the BIDS validator on the specified repository in 'path'
+// and saves the results to the appropriate document for later viewing.
+func validateBids(valroot, resdir string) error {
+	srvcfg := config.Read()
+	// Create results folder if necessary
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	err := os.MkdirAll(resdir, os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
+		return fmt.Errorf("failed to generate results")
+	}
 
-	repopathparts := strings.SplitN(repopath, "/", 2)
-	user, repo := repopathparts[0], repopathparts[1]
+	// Use validation config file if available
+	var validateNifti bool
+
+	cfgpath := filepath.Join(valroot, srvcfg.Label.ValidationConfigFile)
+	log.ShowWrite("[Info] looking for config file at '%s'", cfgpath)
+	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
+		valcfg, err := handleValidationConfig(cfgpath)
+		if err == nil {
+			checkdir := filepath.Join(valroot, valcfg.Bidscfg.BidsRoot)
+			if fi, err = os.Stat(checkdir); err == nil && fi.IsDir() {
+				valroot = checkdir
+				log.ShowWrite("[Info] using validation root directory: %s\n%s", valroot, checkdir)
+			} else {
+				log.ShowWrite("[Error] reading validation root directory: %s", err.Error())
+			}
+			validateNifti = valcfg.Bidscfg.ValidateNifti
+		} else {
+			log.ShowWrite("[Error] unmarshalling validation config file: %s", err.Error())
+		}
+	} else {
+		log.ShowWrite("[Info] no validation config file found or processed, running from repo root (%s)", err.Error())
+	}
+
+	// Ignoring NiftiHeaders for now, since it seems to be a common error
+	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+	log.ShowWrite("[Info] Running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
+
+	// Make sure the validator arguments are in the right order
+	var args []string
+	if !validateNifti {
+		args = append(args, "--ignoreNiftiHeaders")
+	}
+	args = append(args, "--json")
+	args = append(args, valroot)
+
+	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
+	var out, serr bytes.Buffer
+	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	// cmd.Dir = tmpdir
+	if err = cmd.Run(); err != nil {
+		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s', '%s'",
+			valroot, err.Error(), serr.String(), "")
+
+		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results badge for %q", valroot)
+		}
+		// return err
+	}
+
+	// We need this for both the writing of the result and the badge
+	output := out.Bytes()
+
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results file for %q", valroot)
+	}
+
+	// Write proper badge according to result
+	content := resources.BidsSuccess
+	var parseBIDS BidsRoot
+	err = json.Unmarshal(output, &parseBIDS)
+	if err != nil {
+		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Errors) > 0 {
+		content = resources.BidsFailure
+	} else if len(parseBIDS.Issues.Warnings) > 0 {
+		content = resources.BidsWarning
+	}
+
+	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results badge for %q", valroot)
+		// return err
+	}
+
+	// Link 'latest' to new res dir
+	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+	err = os.Symlink(resdir, latestdir)
+	if err != nil {
+		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+	}
+
+	log.ShowWrite("[Info] finished validating repo at %q", valroot)
+	return nil
+}
+
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (int, error) {
+	log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commit)
 
 	srvcfg := config.Read()
 
@@ -150,6 +253,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 
 	log.ShowWrite("[Info] Downloading content")
 	getcontentchan := make(chan git.RepoFileStatus)
+	// TODO: Get only the content for the files that will be validated
 	go gcl.GetContent([]string{"."}, getcontentchan)
 	for stat := range getcontentchan {
 		if stat.Err != nil {
@@ -162,102 +266,13 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 		log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
 	}
 	log.ShowWrite("[Info] get-content complete")
+	resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, commit)
 
-	// Create results folder if necessary
-	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, srvcfg.Label.ResultsFolder)
-	err = os.MkdirAll(resdir, os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] creating '%s' results folder: %s", repopath, err.Error())
-		return http.StatusInternalServerError, fmt.Errorf("failed to generate results")
-	}
-
-	// Use validation config file if available
+	repopathparts := strings.SplitN(repopath, "/", 2)
+	_, repo := repopathparts[0], repopathparts[1]
 	valroot := filepath.Join(tmpdir, repo)
-	var validateNifti bool
-
-	cfgpath := filepath.Join(tmpdir, repo, srvcfg.Label.ValidationConfigFile)
-	log.ShowWrite("[Info] looking for config file at '%s'", cfgpath)
-	if fi, err := os.Stat(cfgpath); err == nil && !fi.IsDir() {
-		valcfg, err := handleValidationConfig(cfgpath)
-		if err == nil {
-			checkdir := filepath.Join(tmpdir, repo, valcfg.Bidscfg.BidsRoot)
-			if fi, err = os.Stat(checkdir); err == nil && fi.IsDir() {
-				valroot = checkdir
-				log.ShowWrite("[Info] using validation root directory: %s\n%s", valroot, checkdir)
-			} else {
-				log.ShowWrite("[Error] reading validation root directory: %s", err.Error())
-			}
-			validateNifti = valcfg.Bidscfg.ValidateNifti
-		} else {
-			log.ShowWrite("[Error] unmarshalling validation config file: %s", err.Error())
-		}
-	} else {
-		log.ShowWrite("[Info] no validation config file found or processed, running from repo root (%s)", err.Error())
-	}
-
-	// Ignoring NiftiHeaders for now, since it seems to be a common error
-	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
-	log.ShowWrite("[Info] Running bids validation: '%s %t --json %s'", srvcfg.Exec.BIDS, validateNifti, valroot)
-
-	// Make sure the validator arguments are in the right order
-	var args []string
-	if !validateNifti {
-		args = append(args, "--ignoreNiftiHeaders")
-	}
-	args = append(args, "--json")
-	args = append(args, valroot)
-
-	// cmd = exec.Command(srvcfg.Exec.BIDS, validateNifti, "--json", valroot)
-	var out, serr bytes.Buffer
-	cmd := exec.Command(srvcfg.Exec.BIDS, args...)
-	out.Reset()
-	serr.Reset()
-	cmd.Stdout = &out
-	cmd.Stderr = &serr
-	cmd.Dir = tmpdir
-	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s', '%s'",
-			valroot, err.Error(), serr.String(), out.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.BidsFailure), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for '%s'", repopath)
-		}
-		return 0, err
-	}
-
-	// We need this for both the writing of the result and the badge
-	output := out.Bytes()
-
-	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] writing results file for '%s'", repopath)
-	}
-
-	// Write proper badge according to result
-	content := resources.BidsSuccess
-	var parseBIDS BidsRoot
-	err = json.Unmarshal(output, &parseBIDS)
-	if err != nil {
-		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
-		content = resources.BidsFailure
-	} else if len(parseBIDS.Issues.Errors) > 0 {
-		content = resources.BidsFailure
-	} else if len(parseBIDS.Issues.Warnings) > 0 {
-		content = resources.BidsWarning
-	}
-
-	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] writing results badge for '%s/%s'", user, repo)
-		return 0, err
-	}
-
-	log.ShowWrite("[Info] finished validating repo '%s/%s'", user, repo)
-	return 0, nil
+	err = validateBids(valroot, resdir)
+	return 0, err
 }
 
 // Root handles the root path of the service. If the user is logged in, it
