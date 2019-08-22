@@ -169,14 +169,6 @@ func validateBIDS(valroot, resdir string) error {
 		// return err
 	}
 
-	// Link 'latest' to new res dir
-	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-	os.Remove(latestdir) // ignore error
-	err = os.Symlink(resdir, latestdir)
-	if err != nil {
-		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
-	}
-
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
 	return nil
 }
@@ -265,13 +257,6 @@ func validateNIX(valroot, resdir string) error {
 	if err != nil {
 		log.ShowWrite("[Error] writing results badge for %q", valroot)
 		// return err
-	}
-
-	// Link 'latest' to new res dir
-	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-	err = os.Symlink(resdir, latestdir)
-	if err != nil {
-		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -374,6 +359,15 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	default:
 		err = fmt.Errorf("[Error] invalid validator name: %s", validator)
 	}
+
+	// Link 'latest' to new res dir
+	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+	os.Remove(latestdir) // ignore error
+	err = os.Symlink(resdir, latestdir)
+	if err != nil {
+		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+	}
+
 	return 0, err
 }
 
