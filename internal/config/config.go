@@ -8,6 +8,7 @@ import (
 // Executables used by the server.
 type Executables struct {
 	BIDS string `json:"bids"`
+	NIX  string `json:"nix"`
 }
 
 // Directories used by the server for temporary and long term storage.
@@ -71,6 +72,7 @@ var defaultCfg = ServerCfg{
 	},
 	Executables{
 		BIDS: "bids-validator",
+		NIX:  "nixio-tool",
 	},
 	Directories{
 		Temp:   filepath.Join(os.Getenv("GINVALIDHOME"), "tmp"),
