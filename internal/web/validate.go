@@ -74,9 +74,9 @@ func handleValidationConfig(cfgpath string) (Validationcfg, error) {
 	return valcfg, nil
 }
 
-// validateBids runs the BIDS validator on the specified repository in 'path'
+// validateBIDS runs the BIDS validator on the specified repository in 'path'
 // and saves the results to the appropriate document for later viewing.
-func validateBids(valroot, resdir string) error {
+func validateBIDS(valroot, resdir string) error {
 	srvcfg := config.Read()
 	// Create results folder if necessary
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
@@ -162,6 +162,96 @@ func validateBids(valroot, resdir string) error {
 	} else if len(parseBIDS.Issues.Warnings) > 0 {
 		content = resources.WarningBadge
 	}
+
+	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results badge for %q", valroot)
+		// return err
+	}
+
+	// Link 'latest' to new res dir
+	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+	os.Remove(latestdir) // ignore error
+	err = os.Symlink(resdir, latestdir)
+	if err != nil {
+		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+	}
+
+	log.ShowWrite("[Info] finished validating repo at %q", valroot)
+	return nil
+}
+
+// validateNIX runs the NIX validator on the specified repository in 'path'
+// and saves the results to the appropriate document for later viewing.
+func validateNIX(valroot, resdir string) error {
+	srvcfg := config.Read()
+	// Create results folder if necessary
+	err := os.MkdirAll(resdir, os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
+		return fmt.Errorf("failed to generate results")
+	}
+
+	// TODO: Allow validator config that specifies file paths to validate
+	// For now we validate everything
+	nixfiles := make([]string, 0)
+	// Find all NIX files (.nix) in the repository
+	nixfinder := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// something went wrong; log this and continue
+			log.ShowWrite("[Error] NIXFinder directory walk caused error at %q: %s", path, err.Error())
+			return nil
+		}
+		if info.IsDir() {
+			// nothing to do; continue
+			return nil
+		}
+
+		if strings.ToLower(filepath.Ext(path)) == ".nix" {
+			nixfiles = append(nixfiles, path)
+		}
+		return nil
+	}
+
+	err = filepath.Walk(valroot, nixfinder)
+	if err != nil {
+		log.ShowWrite("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
+		return fmt.Errorf("failed to search for NIX files in %q: %s", valroot, err.Error())
+	}
+
+	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+
+	var out, serr bytes.Buffer
+	args := append([]string{"validate"}, nixfiles...)
+	cmd := exec.Command(srvcfg.Exec.NIX, args...)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	// cmd.Dir = tmpdir
+	if err = cmd.Run(); err != nil {
+		log.ShowWrite("[Error] running NIX validation (%s): '%s', '%s', '%s'",
+			valroot, err.Error(), serr.String(), "")
+
+		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results badge for %q", valroot)
+		}
+		// return err
+	}
+
+	// We need this for both the writing of the result and the badge
+	output := out.Bytes()
+
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results file for %q", valroot)
+	}
+
+	// TODO: Parse results
+	content := resources.SuccessBadge
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
@@ -257,10 +347,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	go gcl.GetContent([]string{"."}, getcontentchan)
 	for stat := range getcontentchan {
 		if stat.Err != nil {
-			e := stat.Err.(shell.Error)
-			log.ShowWrite("[Error] %s", e.UError)
-			log.ShowWrite("[Error] %s", e.Description)
-			log.ShowWrite("[Error] %s", e.Origin)
+			log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
 			return http.StatusInternalServerError, fmt.Errorf("failed to fetch repository data")
 		}
 		log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
@@ -271,7 +358,14 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 	repopathparts := strings.SplitN(repopath, "/", 2)
 	_, repo := repopathparts[0], repopathparts[1]
 	valroot := filepath.Join(tmpdir, repo)
-	err = validateBids(valroot, resdir)
+	switch validator {
+	case "bids":
+		err = validateBIDS(valroot, resdir)
+	case "nix":
+		err = validateNIX(valroot, resdir)
+	default:
+		err = fmt.Errorf("[Error] invalid validator name: %s", validator)
+	}
 	return 0, err
 }
 
