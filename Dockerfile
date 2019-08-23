@@ -63,10 +63,19 @@ RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/reposito
         git \
         nodejs \
         npm \
-        openssh
+        openssh \
+        python3 \
+        py3-lxml
 
 # Install the BIDS validator
 RUN npm install -g bids-validator
+
+# Install odml for odML validation
+RUN pip3 install -U pip
+RUN pip3 install odml
+
+# Copy odML validation script
+COPY ./scripts/odml-validate /bin
 
 # Copy git-annex from builder image
 COPY --from=binbuilder /git-annex /git-annex
