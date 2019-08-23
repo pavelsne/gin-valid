@@ -122,8 +122,7 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err := cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s', '%s'",
-			valroot, err.Error(), serr.String(), "")
+		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
 		if err != nil {
@@ -208,8 +207,7 @@ func validateNIX(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running NIX validation (%s): '%s', '%s', '%s'",
-			valroot, err.Error(), serr.String(), "")
+		log.ShowWrite("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
 
 		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
 		if err != nil {
@@ -249,6 +247,86 @@ func validateNIX(valroot, resdir string) error {
 	return nil
 }
 
+func validateODML(valroot, resdir string) error {
+	srvcfg := config.Read()
+
+	// TODO: Allow validator config that specifies file paths to validate
+	// For now we validate everything
+	odmlfiles := make([]string, 0)
+	// Find all NIX files (.nix) in the repository
+	odmlfinder := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// something went wrong; log this and continue
+			log.ShowWrite("[Error] ODMLFinder directory walk caused error at %q: %s", path, err.Error())
+			return nil
+		}
+		if info.IsDir() {
+			// nothing to do; continue
+			return nil
+		}
+
+		extension := strings.ToLower(filepath.Ext(path))
+		if extension == ".odml" || extension == ".xml" {
+			odmlfiles = append(odmlfiles, path)
+		}
+		return nil
+	}
+
+	err := filepath.Walk(valroot, odmlfinder)
+	if err != nil {
+		log.ShowWrite("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
+		return fmt.Errorf("failed to search for odML files in %q: %s", valroot, err.Error())
+	}
+
+	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+
+	var out, serr bytes.Buffer
+	cmd := exec.Command(srvcfg.Exec.ODML, odmlfiles...)
+	out.Reset()
+	serr.Reset()
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	if err = cmd.Run(); err != nil {
+		log.ShowWrite("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+
+		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results badge for %q", valroot)
+		}
+		// return err
+	}
+
+	// We need this for both the writing of the result and the badge
+	errtag := []byte("[error]")
+	warntag := []byte("[warning]")
+	fataltag := []byte("[fatal]")
+	var badge []byte
+	output := out.Bytes()
+	switch {
+	case bytes.Contains(output, errtag) || bytes.Contains(output, fataltag):
+		badge = []byte(resources.FailureBadge)
+	case bytes.Contains(output, warntag):
+		badge = []byte(resources.WarningBadge)
+	default:
+		badge = []byte(resources.SuccessBadge)
+	}
+
+	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results file for %q", valroot)
+	}
+
+	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
+	if err != nil {
+		log.ShowWrite("[Error] writing results badge for %q", valroot)
+		// return err
+	}
+
+	log.ShowWrite("[Info] finished validating repo at %q", valroot)
+	return nil
+}
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (int, error) {
 	log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commit)
 
@@ -351,6 +429,8 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (in
 		err = validateBIDS(valroot, resdir)
 	case "nix":
 		err = validateNIX(valroot, resdir)
+	case "odml":
+		err = validateODML(valroot, resdir)
 	default:
 		err = fmt.Errorf("[Error] invalid validator name: %s", validator)
 	}

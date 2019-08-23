@@ -130,6 +130,8 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		renderBIDSResults(w, r, badge, content, user, repo)
 	case "nix":
 		renderNIXResults(w, r, badge, content, user, repo)
+	case "odml":
+		renderODMLResults(w, r, badge, content, user, repo)
 	default:
 		log.ShowWrite("[Error] Validator %q is supported but no render result function is set up", validator)
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Validator results missing")))
@@ -188,7 +190,7 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
-	tmpl, err = tmpl.Parse(templates.NIXResults)
+	tmpl, err = tmpl.Parse(templates.GenericResults)
 	if err != nil {
 		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
@@ -197,6 +199,39 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("NIX validation for %s/%s", user, repo)
+	info := struct {
+		Badge   template.HTML
+		Header  string
+		Content string
+	}{template.HTML(badge), head, string(content)}
+
+	err = tmpl.ExecuteTemplate(w, "layout", info)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+}
+
+func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, content []byte, user, repo string) {
+	// Parse results file
+	// Parse html template
+	tmpl := template.New("layout")
+	tmpl, err := tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.GenericResults)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+
+	// Parse results into html template and serve it
+	head := fmt.Sprintf("odML validation for %s/%s", user, repo)
 	info := struct {
 		Badge   template.HTML
 		Header  string
