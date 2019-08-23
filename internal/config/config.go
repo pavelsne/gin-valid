@@ -9,6 +9,7 @@ import (
 type Executables struct {
 	BIDS string `json:"bids"`
 	NIX  string `json:"nix"`
+	ODML string `json:"odml"`
 }
 
 // Directories used by the server for temporary and long term storage.
@@ -67,12 +68,12 @@ var defaultCfg = ServerCfg{
 		ClientID:    "gin-valid",
 		HookSecret:  "",
 		CookieName:  "gin-valid-session",
-		// NOTE: NIX isn't actually supported yet, but having a second value helps with testing
-		Validators: []string{"bids", "nix"},
+		Validators:  []string{"bids", "nix", "odml"},
 	},
 	Executables{
 		BIDS: "bids-validator",
 		NIX:  "nixio-tool",
+		ODML: "odml-validate",
 	},
 	Directories{
 		Temp:   filepath.Join(os.Getenv("GINVALIDHOME"), "tmp"),
