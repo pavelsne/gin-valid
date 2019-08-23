@@ -1,6 +1,8 @@
 package templates
 
-const NIXResults = `
+// GenericResults is a template that requires only a header text, a badge, and
+// content. The content is displayed in a <pre> block.
+const GenericResults = `
 {{define "content"}}
 	<div class="repository file list">
 		<div class="header-wrapper">
