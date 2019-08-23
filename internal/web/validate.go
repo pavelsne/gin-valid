@@ -351,6 +351,23 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			return
 		}
 
+		repopathparts := strings.SplitN(repopath, "/", 2)
+		_, repo := repopathparts[0], repopathparts[1]
+		valroot := filepath.Join(tmpdir, repo)
+
+		// Enable cleanup once tried and tested
+		defer os.RemoveAll(tmpdir)
+
+		// Add the processing badge and message to display while the validator runs
+		procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+		err = ioutil.WriteFile(procBadge, []byte(resources.ProcessingBadge), os.ModePerm)
+
+		outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+		err = ioutil.WriteFile(outFile, []byte(progressmsg), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results file for %q", valroot)
+		}
+
 		err = makeSessionKey(gcl, commit)
 		if err != nil {
 			log.ShowWrite("[error] failed to create session key: %s", err.Error())
@@ -358,9 +375,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			return
 		}
 		defer deleteSessionKey(gcl, commit)
-
-		// Enable cleanup once tried and tested
-		defer os.RemoveAll(tmpdir)
 
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
@@ -409,10 +423,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 		}
 		log.ShowWrite("[Info] get-content complete")
 
-		repopathparts := strings.SplitN(repopath, "/", 2)
-		_, repo := repopathparts[0], repopathparts[1]
-		valroot := filepath.Join(tmpdir, repo)
-
 		// Create results folder if necessary
 		// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 		err = os.MkdirAll(resdir, os.ModePerm)
@@ -420,16 +430,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
 			writeValFailure(resdir)
 			return
-		}
-
-		// Add the processing badge and message to display while the validator runs
-		procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
-		err = ioutil.WriteFile(procBadge, []byte(resources.ProcessingBadge), os.ModePerm)
-
-		outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-		err = ioutil.WriteFile(outFile, []byte(progressmsg), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
 		// Link 'latest' to new res dir to show processing
