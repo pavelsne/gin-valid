@@ -361,12 +361,17 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 		// Add the processing badge and message to display while the validator runs
 		procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 		err = ioutil.WriteFile(procBadge, []byte(resources.ProcessingBadge), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results badge for %q", valroot)
+		}
 
 		outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 		err = ioutil.WriteFile(outFile, []byte(progressmsg), os.ModePerm)
 		if err != nil {
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
+
+		// Don't return if processing badge write fails
 
 		err = makeSessionKey(gcl, commit)
 		if err != nil {
