@@ -5,4 +5,10 @@
 
 gin-valid is the G-Node Infrastructure data validation service. It is a microservice server written in go that is meant to be run together with a GIN repository server.
 
-Repositories on a GIN server can trigger validation of data files via this service. Currently validation of the [BIDS](bids.neuroimaging.io) fMRI data format is supported.
+Repositories on a GIN server can trigger validation of data files via this service. Currently there are two validators supported:
+- The [BIDS](https://bids.neuroimaging.io) fMRI data format.
+- The [NIX](http://g-node.org/nix) (Neuroscience Information Exchange) format.
+
+## Contributing
+
+For instructions on how to add more validators, see the [adding validators](docs/adding-validators.md) contribution guide.
