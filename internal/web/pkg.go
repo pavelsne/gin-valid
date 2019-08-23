@@ -7,4 +7,5 @@ package web
 
 const (
 	serveralias = "gin"
+	progressmsg = "A validation job for this repository is currently in progress"
 )
