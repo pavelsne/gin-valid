@@ -122,13 +122,9 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err := cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -138,7 +134,9 @@ func validateBIDS(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results file for %q", valroot)
+		err = fmt.Errorf("[Error] writing results file for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// Write proper badge according to result
@@ -146,9 +144,12 @@ func validateBIDS(valroot, resdir string) error {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
-		content = resources.ErrorBadge
-	} else if len(parseBIDS.Issues.Errors) > 0 {
+		err = fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
+		log.ShowWrite(err.Error())
+		return err
+	}
+
+	if len(parseBIDS.Issues.Errors) > 0 {
 		content = resources.ErrorBadge
 	} else if len(parseBIDS.Issues.Warnings) > 0 {
 		content = resources.WarningBadge
@@ -156,8 +157,9 @@ func validateBIDS(valroot, resdir string) error {
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results badge for %q", valroot)
-		// return err
+		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -192,8 +194,9 @@ func validateNIX(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, nixfinder)
 	if err != nil {
-		log.ShowWrite("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
-		return fmt.Errorf("failed to search for NIX files in %q: %s", valroot, err.Error())
+		err = fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -207,13 +210,9 @@ func validateNIX(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -234,13 +233,16 @@ func validateNIX(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results file for %q", valroot)
+		err = fmt.Errorf("[Error] writing results file for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results badge for %q", valroot)
-		// return err
+		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -274,8 +276,9 @@ func validateODML(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, odmlfinder)
 	if err != nil {
-		log.ShowWrite("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
-		return fmt.Errorf("failed to search for odML files in %q: %s", valroot, err.Error())
+		err = fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -287,13 +290,9 @@ func validateODML(valroot, resdir string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
