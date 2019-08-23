@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import os
+import sys
+import odml
+from odml.tools.parser_utils import InvalidVersionException, ParserException
+
+
+def val(fname):
+    doc = odml.load(fname)
+    res = odml.validation.Validation(doc)
+    return res
+
+
+def errtostring(error):
+    return f"[{error.rank}] {error.path}: {error.msg}"
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.exit("Please provide the path to at least one file to validate")
+
+    filenames = sys.argv[1:]
+    fileerrors = dict()
+    for fname in filenames:
+        if (os.path.exists(fname) and
+                (os.path.isfile(fname) or os.path.islink(fname))):
+            print(f"Validating {fname}...", flush=True, end=" ")
+            try:
+                v = val(fname)
+                msgs = [errtostring(err) for err in v.errors]
+            except InvalidVersionException as ve:
+                msgs = [f"[error] Unsupported file format version: {ve}"]
+            except ParserException as pe:
+                msgs = [f"[fatal] Invalid odML file: {pe}"]
+            fileerrors[fname] = msgs
+            print("done")
+        else:
+            print(f"{fname} is not a file. Skipping validation.")
+
+    print(f"Completed validation of {len(filenames)} files")
+
+    print("=== RESULTS ===")
+    for fname, errors in fileerrors.items():
+        if len(errors):
+            print(f":: {fname}: {len(errors)} issues found")
+            for err in errors:
+                print(f"    {err}")
+        else:
+            print(f":: {fname} successfully validated "
+                  "with no warnings or errors")
