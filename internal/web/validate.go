@@ -147,9 +147,9 @@ func validateBIDS(valroot, resdir string) error {
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
 		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
-		content = resources.FailureBadge
+		content = resources.ErrorBadge
 	} else if len(parseBIDS.Issues.Errors) > 0 {
-		content = resources.FailureBadge
+		content = resources.ErrorBadge
 	} else if len(parseBIDS.Issues.Warnings) > 0 {
 		content = resources.WarningBadge
 	}
@@ -223,7 +223,7 @@ func validateNIX(valroot, resdir string) error {
 	output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag):
-		badge = []byte(resources.FailureBadge)
+		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
 	default:
@@ -232,7 +232,7 @@ func validateNIX(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
 		log.ShowWrite("[Error] writing results file for %q", valroot)
 	}
@@ -304,7 +304,7 @@ func validateODML(valroot, resdir string) error {
 	output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag) || bytes.Contains(output, fataltag):
-		badge = []byte(resources.FailureBadge)
+		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
 	default:
@@ -313,7 +313,7 @@ func validateODML(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
 		log.ShowWrite("[Error] writing results file for %q", valroot)
 	}
