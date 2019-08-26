@@ -464,7 +464,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 // valid, but the validator failed to run.  This function does not return
 // anything, but logs all errors.
 func writeValFailure(resdir string) {
-	log.ShowWrite("[Error] VALIDATOR FUN FAILURE")
+	log.ShowWrite("[Error] VALIDATOR RUN FAILURE")
 	srvcfg := config.Read()
 	procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	err := ioutil.WriteFile(procBadge, []byte(resources.FailureBadge), os.ModePerm)
