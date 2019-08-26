@@ -20,6 +20,7 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	gcfg "github.com/G-Node/gin-cli/ginclient/config"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
+	"github.com/G-Node/gin-cli/git"
 	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/helpers"
@@ -54,16 +55,35 @@ func cookieExp() time.Time {
 	return time.Now().Add(7 * 24 * time.Hour)
 }
 
-func deleteSessionKey(gcl *ginclient.Client) {
-	hostname, err := os.Hostname()
+func makeSessionKey(gcl *ginclient.Client, keyname string) error {
+	keyPair, err := git.MakeKeyPair()
 	if err != nil {
-		log.Write("Could not retrieve hostname")
-		hostname = "(unknown)"
+		return err
 	}
-	description := fmt.Sprintf("GIN Client: %s@%s", gcl.Username, hostname)
+
+	description := fmt.Sprintf("GIN Valid: %s", keyname)
+	pubkey := fmt.Sprintf("%s %s", strings.TrimSpace(keyPair.Public), description)
+	err = gcl.AddKey(pubkey, description, true)
+	if err != nil {
+		return err
+	}
+
+	configpath, err := gcfg.Path(true)
+	if err != nil {
+		log.Write("Could not create config directory for private key")
+		return err
+	}
+	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", keyname))
+	ioutil.WriteFile(keyfilepath, []byte(keyPair.Private), 0600)
+
+	return nil
+}
+
+func deleteSessionKey(gcl *ginclient.Client, keyname string) {
+	description := fmt.Sprintf("GIN Valid: %s", keyname)
 	gcl.DeletePubKeyByTitle(description)
 	configpath, _ := gcfg.Path(false)
-	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", serveralias))
+	keyfilepath := filepath.Join(configpath, fmt.Sprintf("%s.key", keyname))
 	os.Remove(keyfilepath)
 }
 

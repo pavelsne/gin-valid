@@ -125,6 +125,12 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if string(content) == progressmsg {
+		// validation in progress
+		renderInProgress(w, r, badge, strings.ToUpper(validator), user, repo)
+		return
+	}
+
 	switch validator {
 	case "bids":
 		renderBIDSResults(w, r, badge, content, user, repo)
@@ -137,6 +143,37 @@ func Results(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Validator results missing")))
 	}
 	return
+}
+
+func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, validator string, user, repo string) {
+	tmpl := template.New("layout")
+	tmpl, err := tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.GenericResults)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+
+	// Parse results into html template and serve it
+	head := fmt.Sprintf("%s validation for %s/%s", validator, user, repo)
+	info := struct {
+		Badge   template.HTML
+		Header  string
+		Content string
+	}{template.HTML(badge), head, string(progressmsg)}
+
+	err = tmpl.ExecuteTemplate(w, "layout", info)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
 }
 
 func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, content []byte, user, repo string) {

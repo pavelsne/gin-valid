@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -18,7 +17,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	glog "github.com/G-Node/gin-cli/ginclient/log"
 	"github.com/G-Node/gin-cli/git"
-	"github.com/G-Node/gin-cli/git/shell"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/helpers"
 	"github.com/G-Node/gin-valid/internal/log"
@@ -122,13 +120,9 @@ func validateBIDS(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err := cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running bids validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -138,7 +132,9 @@ func validateBIDS(valroot, resdir string) error {
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
 	err := ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results file for %q", valroot)
+		err = fmt.Errorf("[Error] writing results file for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// Write proper badge according to result
@@ -146,18 +142,22 @@ func validateBIDS(valroot, resdir string) error {
 	var parseBIDS BidsRoot
 	err = json.Unmarshal(output, &parseBIDS)
 	if err != nil {
-		log.ShowWrite("[Error] unmarshalling results json: %s", err.Error())
-		content = resources.FailureBadge
-	} else if len(parseBIDS.Issues.Errors) > 0 {
-		content = resources.FailureBadge
+		err = fmt.Errorf("[Error] unmarshalling results json: %s", err.Error())
+		log.ShowWrite(err.Error())
+		return err
+	}
+
+	if len(parseBIDS.Issues.Errors) > 0 {
+		content = resources.ErrorBadge
 	} else if len(parseBIDS.Issues.Warnings) > 0 {
 		content = resources.WarningBadge
 	}
 
 	err = ioutil.WriteFile(outBadge, []byte(content), os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results badge for %q", valroot)
-		// return err
+		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -192,8 +192,9 @@ func validateNIX(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, nixfinder)
 	if err != nil {
-		log.ShowWrite("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
-		return fmt.Errorf("failed to search for NIX files in %q: %s", valroot, err.Error())
+		err = fmt.Errorf("[Error] while looking for NIX files in repository at %q: %s", valroot, err.Error())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -207,13 +208,9 @@ func validateNIX(valroot, resdir string) error {
 	cmd.Stderr = &serr
 	// cmd.Dir = tmpdir
 	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running NIX validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -223,7 +220,7 @@ func validateNIX(valroot, resdir string) error {
 	output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag):
-		badge = []byte(resources.FailureBadge)
+		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
 	default:
@@ -232,15 +229,18 @@ func validateNIX(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results file for %q", valroot)
+		err = fmt.Errorf("[Error] writing results file for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results badge for %q", valroot)
-		// return err
+		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
@@ -274,8 +274,9 @@ func validateODML(valroot, resdir string) error {
 
 	err := filepath.Walk(valroot, odmlfinder)
 	if err != nil {
-		log.ShowWrite("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
-		return fmt.Errorf("failed to search for odML files in %q: %s", valroot, err.Error())
+		err = fmt.Errorf("[Error] while looking for odML files in repository at %q: %s", valroot, err.Error())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
@@ -287,13 +288,9 @@ func validateODML(valroot, resdir string) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
 	if err = cmd.Run(); err != nil {
-		log.ShowWrite("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
-
-		err = ioutil.WriteFile(outBadge, []byte(resources.FailureBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-		// return err
+		err = fmt.Errorf("[Error] running odML validation (%s): '%s', '%s'", valroot, err.Error(), serr.String())
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	// We need this for both the writing of the result and the badge
@@ -304,7 +301,7 @@ func validateODML(valroot, resdir string) error {
 	output := out.Bytes()
 	switch {
 	case bytes.Contains(output, errtag) || bytes.Contains(output, fataltag):
-		badge = []byte(resources.FailureBadge)
+		badge = []byte(resources.ErrorBadge)
 	case bytes.Contains(output, warntag):
 		badge = []byte(resources.WarningBadge)
 	default:
@@ -313,137 +310,175 @@ func validateODML(valroot, resdir string) error {
 
 	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
 	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-	err = ioutil.WriteFile(outFile, []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(outFile, output, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results file for %q", valroot)
+		err = fmt.Errorf("[Error] writing results file for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	err = ioutil.WriteFile(outBadge, badge, os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] writing results badge for %q", valroot)
-		// return err
+		err = fmt.Errorf("[Error] writing results badge for %q", valroot)
+		log.ShowWrite(err.Error())
+		return err
 	}
 
 	log.ShowWrite("[Info] finished validating repo at %q", valroot)
 	return nil
 }
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) (int, error) {
-	log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commit)
 
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
+	go func() {
+		log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commit)
+
+		srvcfg := config.Read()
+		// TODO add check if a repo is currently being validated. Since the cloning
+		// can potentially take quite some time prohibit running the same
+		// validation at the same time. Could also move this to a mapped go
+		// routine and if the same repo is validated twice, the first occurrence is
+		// stopped and cleaned up while the second starts anew - to make sure its
+		// always the latest state of the repository that is being validated.
+
+		// TODO: Use the payload data to check if the specific commit has already
+		// been validated
+
+		resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, commit)
+		tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
+		if err != nil {
+			log.ShowWrite("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
+			writeValFailure(resdir)
+			return
+		}
+
+		repopathparts := strings.SplitN(repopath, "/", 2)
+		_, repo := repopathparts[0], repopathparts[1]
+		valroot := filepath.Join(tmpdir, repo)
+
+		// Enable cleanup once tried and tested
+		defer os.RemoveAll(tmpdir)
+
+		// Add the processing badge and message to display while the validator runs
+		procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+		err = ioutil.WriteFile(procBadge, []byte(resources.ProcessingBadge), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results badge for %q", valroot)
+		}
+
+		outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+		err = ioutil.WriteFile(outFile, []byte(progressmsg), os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] writing results file for %q", valroot)
+		}
+
+		// Don't return if processing badge write fails
+
+		err = makeSessionKey(gcl, commit)
+		if err != nil {
+			log.ShowWrite("[error] failed to create session key: %s", err.Error())
+			writeValFailure(resdir)
+			return
+		}
+		defer deleteSessionKey(gcl, commit)
+
+		// TODO: if (annexed) content is not available yet, wait and retry.  We
+		// would have to set a max timeout for this.  The issue is that when a user
+		// does a 'gin upload' a push happens immediately and the hook is
+		// triggered, but annexed content is only transferred after the push and
+		// could take a while (hours?). The validation service should try to
+		// download content after the transfer is complete, or should keep retrying
+		// until it's available, with a timeout. We could also make it more
+		// efficient by only downloading the content in the directories which are
+		// specified in the validator config (if it exists).
+
+		glog.Init()
+		clonechan := make(chan git.RepoFileStatus)
+		os.Chdir(tmpdir)
+		go gcl.CloneRepo(repopath, clonechan)
+		for stat := range clonechan {
+			if stat.Err != nil {
+				log.ShowWrite("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
+				writeValFailure(resdir)
+				return
+			}
+			log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
+		}
+		log.ShowWrite("[Info] clone complete for '%s'", repopath)
+
+		// checkout specific commit then download all content
+		log.ShowWrite("[Info] git checkout %s", commit)
+		err = git.Checkout(commit, nil)
+		if err != nil {
+			log.ShowWrite("[Error] failed to checkout commit %q: %s", commit, err.Error())
+			writeValFailure(resdir)
+			return
+		}
+
+		log.ShowWrite("[Info] Downloading content")
+		getcontentchan := make(chan git.RepoFileStatus)
+		// TODO: Get only the content for the files that will be validated
+		go gcl.GetContent([]string{"."}, getcontentchan)
+		for stat := range getcontentchan {
+			if stat.Err != nil {
+				log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
+				writeValFailure(resdir)
+				return
+			}
+			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
+		}
+		log.ShowWrite("[Info] get-content complete")
+
+		// Create results folder if necessary
+		// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+		err = os.MkdirAll(resdir, os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
+			writeValFailure(resdir)
+			return
+		}
+
+		// Link 'latest' to new res dir to show processing
+		latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+		os.Remove(latestdir) // ignore error
+		err = os.Symlink(resdir, latestdir)
+		if err != nil {
+			log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+		}
+
+		switch validator {
+		case "bids":
+			err = validateBIDS(valroot, resdir)
+		case "nix":
+			err = validateNIX(valroot, resdir)
+		case "odml":
+			err = validateODML(valroot, resdir)
+		default:
+			err = fmt.Errorf("[Error] invalid validator name: %s", validator)
+		}
+
+		if err != nil {
+			writeValFailure(resdir)
+		}
+	}()
+}
+
+// writeValFailure writes a badge and page content for when a hook payload is
+// valid, but the validator failed to run.  This function does not return
+// anything, but logs all errors.
+func writeValFailure(resdir string) {
+	log.ShowWrite("[Error] VALIDATOR FUN FAILURE")
 	srvcfg := config.Read()
-
-	// TODO add check if a repo is currently being validated. Since the cloning
-	// can potentially take quite some time prohibit running the same
-	// validation at the same time. Could also move this to a mapped go
-	// routine and if the same repo is validated twice, the first occurrence is
-	// stopped and cleaned up while the second starts anew - to make sure its
-	// always the latest state of the repository that is being validated.
-
-	// TODO: Use the payload data to check if the specific commit has already
-	// been validated
-
-	_, err := gcl.GetRepo(repopath)
+	procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
+	err := ioutil.WriteFile(procBadge, []byte(resources.FailureBadge), os.ModePerm)
 	if err != nil {
-		code, converr := strconv.Atoi(err.Error()[:3])
-		if converr != nil {
-			// First three chars should be error code. If not, default to NotFound
-			code = http.StatusNotFound
-		}
-		log.ShowWrite("[Error] Repository not found: %s", repopath)
-		return code, fmt.Errorf("accessing '%s': %s", repopath, err.Error())
+		log.ShowWrite("[Error] writing error badge to %q: %s", resdir, err.Error())
 	}
 
-	log.ShowWrite("[Info] Found repository on server")
-
-	tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
+	outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
+	err = ioutil.WriteFile(outFile, []byte("ERROR: The validator failed to run"), os.ModePerm)
 	if err != nil {
-		log.ShowWrite("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
-		return http.StatusInternalServerError, fmt.Errorf("validation on %s failed", repopath)
+		log.ShowWrite("[Error] writing error page to %q: %s", resdir, err.Error())
 	}
-
-	// Enable cleanup once tried and tested
-	defer os.RemoveAll(tmpdir)
-
-	// TODO: if (annexed) content is not available yet, wait and retry.  We
-	// would have to set a max timeout for this.  The issue is that when a user
-	// does a 'gin upload' a push happens immediately and the hook is
-	// triggered, but annexed content is only transferred after the push and
-	// could take a while (hours?). The validation service should try to
-	// download content after the transfer is complete, or should keep retrying
-	// until it's available, with a timeout. We could also make it more
-	// efficient by only downloading the content in the directories which are
-	// specified in the validator config (if it exists).
-
-	glog.Init()
-	clonechan := make(chan git.RepoFileStatus)
-	os.Chdir(tmpdir)
-	go gcl.CloneRepo(repopath, clonechan)
-	for stat := range clonechan {
-		if stat.Err != nil {
-			e := stat.Err.(shell.Error)
-			log.ShowWrite("[Error] %s", e.UError)
-			log.ShowWrite("[Error] %s", e.Description)
-			log.ShowWrite("[Error] %s", e.Origin)
-			return http.StatusInternalServerError, fmt.Errorf("failed to fetch repository data")
-		}
-		log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
-	}
-	log.ShowWrite("[Info] clone complete for '%s'", repopath)
-
-	// checkout specific commit then download all content
-	log.ShowWrite("[Info] git checkout %s", commit)
-	err = git.Checkout(commit, nil)
-	if err != nil {
-		log.ShowWrite("[Error] failed to checkout commit '%s': %s", commit, err.Error())
-		return http.StatusInternalServerError, fmt.Errorf("failed to fetch repository data")
-	}
-
-	log.ShowWrite("[Info] Downloading content")
-	getcontentchan := make(chan git.RepoFileStatus)
-	// TODO: Get only the content for the files that will be validated
-	go gcl.GetContent([]string{"."}, getcontentchan)
-	for stat := range getcontentchan {
-		if stat.Err != nil {
-			log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
-			return http.StatusInternalServerError, fmt.Errorf("failed to fetch repository data")
-		}
-		log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
-	}
-	log.ShowWrite("[Info] get-content complete")
-	resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, commit)
-
-	repopathparts := strings.SplitN(repopath, "/", 2)
-	_, repo := repopathparts[0], repopathparts[1]
-	valroot := filepath.Join(tmpdir, repo)
-
-	// Create results folder if necessary
-	// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-	err = os.MkdirAll(resdir, os.ModePerm)
-	if err != nil {
-		log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
-		return http.StatusInternalServerError, fmt.Errorf("failed to generate results")
-	}
-
-	switch validator {
-	case "bids":
-		err = validateBIDS(valroot, resdir)
-	case "nix":
-		err = validateNIX(valroot, resdir)
-	case "odml":
-		err = validateODML(valroot, resdir)
-	default:
-		err = fmt.Errorf("[Error] invalid validator name: %s", validator)
-	}
-
-	// Link 'latest' to new res dir
-	latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-	os.Remove(latestdir) // ignore error
-	err = os.Symlink(resdir, latestdir)
-	if err != nil {
-		log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
-	}
-
-	return 0, err
 }
 
 // Root handles the root path of the service. If the user is logged in, it
@@ -511,15 +546,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statuscode, err := runValidator(validator, repopath, "HEAD", gcl)
-	if err != nil {
-		if statuscode == 0 {
-			statuscode = http.StatusInternalServerError
-		}
-		fail(w, statuscode, err.Error())
-		return
-	}
-
+	runValidator(validator, repopath, "HEAD", gcl)
 	// TODO redirect to results
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
@@ -590,27 +617,17 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	log.ShowWrite("[Info] Using user %s", ut.Username)
 	gcl := ginclient.New(serveralias)
 	gcl.UserToken = ut
-	log.ShowWrite("[Info] Got user %s. Checking repo", gcl.Username)
-	// TODO: make key with unique name in tmp and delete when done
-	// Currently, multiple simultaneous validations will override each-others keys
-	err = gcl.MakeSessionKey()
-	if err != nil {
-		log.ShowWrite("[error] failed to create session key")
-		msg := fmt.Sprintf("failed to clone '%s': %s", repopath, err.Error())
-		fail(w, http.StatusUnauthorized, msg)
-		return
-	}
-	defer deleteSessionKey(gcl)
 
-	statuscode, err := runValidator(validator, repopath, commithash, gcl)
+	// check if repository exists and is accessible
+	_, err = gcl.GetRepo(repopath)
 	if err != nil {
-		if statuscode == 0 {
-			statuscode = http.StatusInternalServerError
-		}
-		w.WriteHeader(statuscode)
-		w.Write([]byte(err.Error()))
+		fail(w, http.StatusNotFound, err.Error())
 		return
 	}
+
+	log.ShowWrite("[Info] Got user %s. Checking repo", gcl.Username)
+	// Payload is good. Run validator asynchronously and return OK header
+	runValidator(validator, repopath, commithash, gcl)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
