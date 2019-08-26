@@ -371,7 +371,14 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
-		// Don't return if processing badge write fails
+		// Link 'latest' to new res dir to show processing
+		latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+		os.Remove(latestdir) // ignore error
+		err = os.Symlink(resdir, latestdir)
+		if err != nil {
+			log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+			// Don't return if processing badge write fails
+		}
 
 		err = makeSessionKey(gcl, commit)
 		if err != nil {
@@ -435,14 +442,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
 			writeValFailure(resdir)
 			return
-		}
-
-		// Link 'latest' to new res dir to show processing
-		latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-		os.Remove(latestdir) // ignore error
-		err = os.Symlink(resdir, latestdir)
-		if err != nil {
-			log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
 		}
 
 		switch validator {
