@@ -344,6 +344,14 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 		// been validated
 
 		resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, commit)
+		// Create results folder if necessary
+		// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
+		err := os.MkdirAll(resdir, os.ModePerm)
+		if err != nil {
+			log.ShowWrite("[Error] creating %q results folder: %s", resdir, err.Error())
+			return
+		}
+
 		tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
 		if err != nil {
 			log.ShowWrite("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
@@ -376,7 +384,7 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 		os.Remove(latestdir) // ignore error
 		err = os.Symlink(resdir, latestdir)
 		if err != nil {
-			log.ShowWrite("[Error] failed to create 'latest' symlink to %q", resdir)
+			log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
 			// Don't return if processing badge write fails
 		}
 
@@ -434,15 +442,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
 		}
 		log.ShowWrite("[Info] get-content complete")
-
-		// Create results folder if necessary
-		// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-		err = os.MkdirAll(resdir, os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] creating %q results folder: %s", valroot, err.Error())
-			writeValFailure(resdir)
-			return
-		}
 
 		switch validator {
 		case "bids":
