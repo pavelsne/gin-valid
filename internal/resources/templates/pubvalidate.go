@@ -18,20 +18,20 @@ var PubValidate = `
 			<div class="ui segment field">
 				<h4>Validators</h4>
 				<div class="inline field">
-					<div class="ui checkbox">
-						<input name="bids" type="checkbox" tabindex="0">
+					<div class="ui radio checkbox">
+						<input name="validator" value="bids" type="radio">
 						<label><strong>BIDS</strong> Brain Imaging Data Structure: link-to-bids-website</label>
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox">
-						<input name="nix" type="checkbox" tabindex="0">
+					<div class="ui radio checkbox">
+						<input name="validator" value="nix" type="radio">
 						<label><strong>NIX</strong> Neuroscience Information Exchange format link-to-nix-website</label>
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox">
-						<input name="odml" type="checkbox" tabindex="0">
+					<div class="ui radio checkbox">
+						<input name="validator" value="odml" type="radio">
 						<label><strong>odML</strong> Open Metadata Markup Language link-to-odml-website</label>
 					</div>
 				</div>

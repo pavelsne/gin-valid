@@ -515,7 +515,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	repopath := r.Form["repopath"][0]
-	validator := "bids" // vars["validator"] // TODO: add options to root form
+	validator := r.Form["validator"][0]
 
 	log.ShowWrite("[Info] About to validate repository '%s' with %s", repopath, ginuser)
 	log.ShowWrite("[Info] Logging in to GIN server")
