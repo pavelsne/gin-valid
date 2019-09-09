@@ -527,7 +527,6 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusUnauthorized, msg)
 		return
 	}
-	defer gcl.Logout()
 
 	// check if repository is accessible
 	repoinfo, err := gcl.GetRepo(repopath)
