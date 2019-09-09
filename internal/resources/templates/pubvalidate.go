@@ -26,7 +26,7 @@ var PubValidate = `
 				<div class="inline field">
 					<div class="ui checkbox">
 						<input name="nix" type="checkbox" tabindex="0">
-						<label><strong>NIX</strong> Neurosciene Information Exchange format link-to-nix-website</label>
+						<label><strong>NIX</strong> Neuroscience Information Exchange format link-to-nix-website</label>
 					</div>
 				</div>
 				<div class="inline field">
