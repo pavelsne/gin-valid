@@ -109,7 +109,12 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	log.ShowWrite("[Info] '%s' results for repo '%s/%s'\n", validator, user, repo)
 
 	srvcfg := config.Read()
-	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo, srvcfg.Label.ResultsFolder)
+	resID, ok := vars["id"]
+	if !ok {
+		fmt.Println("Results ID not specified: Rendering default")
+		resID = srvcfg.Label.ResultsFolder
+	}
+	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo, resID)
 
 	fp := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 	badge, err := ioutil.ReadFile(fp)
