@@ -7,6 +7,7 @@ require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/gogits/go-gogs-client v0.0.0-20190710002546-4c3c18947c15
 	github.com/gogs/go-gogs-client v0.0.0-20190710002546-4c3c18947c15
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
 	github.com/magiconair/properties v1.8.1 // indirect
