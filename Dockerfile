@@ -97,6 +97,7 @@ ENV GIN_CONFIG_DIR /gin-valid/config/client
 
 # Copy binary and resources into runner image
 COPY --from=binbuilder /gin-valid/ginvalid /
+COPY ./assets /assets
 
 ENTRYPOINT /ginvalid --config=/gin-valid/config/cfg.json
 EXPOSE 3033

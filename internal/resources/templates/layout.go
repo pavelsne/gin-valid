@@ -9,18 +9,18 @@ var Layout = `
 <html>
 	<!DOCTYPE html>
 	<head data-suburl="">
-		<link rel="shortcut icon" href="https://gin.g-node.org/img/favicon.png" />
-		<link rel="stylesheet" href="https://gin.g-node.org/assets/font-awesome-4.6.3/css/font-awesome.min.css">
-		<link rel="stylesheet" href="https://gin.g-node.org/assets/octicons-4.3.0/octicons.min.css">
-		<link rel="stylesheet" href="https://gin.g-node.org/css/semantic-2.3.1.min.css">
-		<link rel="stylesheet" href="https://gin.g-node.org/css/gogs.css?v=921e73e55b4d707a9a72151df987dce1">
+		<link rel="shortcut icon" href="/assets/favicon.png" />
+		<link rel="stylesheet" href="/assets/font-awesome-4.6.3/css/font-awesome.min.css">
+		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
+		<link rel="stylesheet" href="/assets/semantic-2.3.1.min.css">
+		<link rel="stylesheet" href="/assets/gogs.css">
+		<link rel="stylesheet" href="/assets/custom.css">
 		<title>GIN Valid</title>
-		<link rel="stylesheet" href="https://gin.g-node.org/css/custom.css">
 		<meta name="twitter:card" content="summary" />
 		<meta name="twitter:site" content="@gnode" />
 		<meta name="twitter:title" content="GIN Valid"/>
 		<meta name="twitter:description" content="G-Node GIN Validation service"/>
-		<meta name="twitter:image" content="https://gin.g-node.org/img/favicon.png" />
+		<meta name="twitter:image" content="/assets/favicon.png" />
 	</head>
 	<body>
 		<div class="full height">
@@ -30,7 +30,7 @@ var Layout = `
 						<div class="column">
 							<div class="ui top secondary menu">
 								<a class="item brand" href="https://gin.g-node.org/">
-									<img class="ui mini image" src="https://gin.g-node.org/img/favicon.png">
+									<img class="ui mini image" src="/assets/favicon.png">
 								</a>
 								<a class="item" href="https://gin.g-node.org/">Back to GIN</a>
 								<a class="item" href="/repos">Repositories</a>
