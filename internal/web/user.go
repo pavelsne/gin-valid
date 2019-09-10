@@ -264,18 +264,41 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
-	repos := make([]repoHooksInfo, len(userrepos))
+	reposActive := make([]repoHooksInfo, 0, len(userrepos))
+	reposInactive := make([]repoHooksInfo, 0, len(userrepos))
+
+	checkActive := func(rhinfo repoHooksInfo) bool {
+		// If at least one hook is not hooknone, return true
+		for _, hook := range rhinfo.Hooks {
+			if hook.State != hooknone {
+				return true
+			}
+		}
+		return false
+	}
 
 	// TODO: Enum for hook states (see issue #5)
-	for idx, rinfo := range userrepos {
+	for _, rinfo := range userrepos {
 		repohooks, err := getRepoHooks(cl, rinfo.FullName)
 		if err != nil {
 			// simply initialise the map for now
 			repohooks = make(map[string]ginhook)
 		}
-		repos[idx] = repoHooksInfo{rinfo, repohooks}
+		rhinfo := repoHooksInfo{rinfo, repohooks}
+		if checkActive(rhinfo) {
+			reposActive = append(reposActive, rhinfo)
+		} else {
+			reposInactive = append(reposInactive, rhinfo)
+		}
 	}
-	tmpl.Execute(w, &repos)
+	allrepos := struct {
+		Active   []repoHooksInfo
+		Inactive []repoHooksInfo
+	}{
+		reposActive,
+		reposInactive,
+	}
+	tmpl.Execute(w, &allrepos)
 }
 
 // matchValidator receives a URL path from a GIN hook and returns the validator
@@ -362,7 +385,7 @@ func getRepoHooks(cl *ginclient.Client, repopath string) (map[string]ginhook, er
 		hooks[validator] = ginhook{validator, hook.ID, state}
 		// TODO: Check if the same validator is found twice
 	}
-	// add supported validators that were not found and mark them disabled
+	// add supported validators that were not found and mark them hooknone
 	supportedValidators := config.Read().Settings.Validators
 	for _, validator := range supportedValidators {
 		if _, ok := hooks[validator]; !ok {
