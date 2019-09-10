@@ -6,7 +6,7 @@ const RepoList = `
 
 <div class="explore repositories">
 	<div class="ui container repository list">
-		{{range .}}
+		{{range .Active}}
 			{{$repopath := .FullName}}
 			<div class="item">
 				<div class="ui grid">
@@ -24,6 +24,25 @@ const RepoList = `
 							{{end}}
 						{{end}}
 							</div>
+						</div>
+						<p class="has-emoji">{{.Description}}</p>
+						<a href="{{.HTMLURL}}">Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">Repository hooks</a>
+					</div>
+				</div>
+			</div>
+		{{end}}
+		<hr>
+		<h2>Inactive repositories</h2>
+		{{range .Inactive}}
+			{{$repopath := .FullName}}
+			<div class="item">
+				<div class="ui grid">
+					<div class="ui two wide column middle aligned center">
+						<i class="mega-octicon octicon-repo"></i>
+					</div>
+					<div class="ui fourteen wide column">
+						<div class="ui header">
+							<a class="name" href="/repos/{{$repopath}}/hooks">{{$repopath}}</a>
 						</div>
 						<p class="has-emoji">{{.Description}}</p>
 						<a href="{{.HTMLURL}}">Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">Repository hooks</a>
