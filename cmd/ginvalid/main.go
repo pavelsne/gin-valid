@@ -52,6 +52,7 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/repos/{user}/{repo}/{validator}/enable", web.EnableHook).Methods("GET")
 	r.HandleFunc("/repos/{user}/{repo}/{hookid}/disable", web.DisableHook).Methods("GET")
 	r.HandleFunc("/repos/{user}/{repo}/hooks", web.ShowRepo).Methods("GET")
+	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
 }
 
 func startupCheck(srvcfg config.ServerCfg) {
