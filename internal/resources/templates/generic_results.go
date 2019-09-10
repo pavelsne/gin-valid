@@ -24,9 +24,11 @@ const GenericResults = `
 			<div class="ui tabs divider"></div>
 		</div>
 		<div class="ui container">
-	<hr>
-	<div>
-		<pre>{{.Content}}</pre>
+			<hr>
+			<div>
+				<pre>{{.Content}}</pre>
+			</div>
+		</div>
 	</div>
 {{end}}
 `
