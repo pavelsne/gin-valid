@@ -26,9 +26,7 @@ const GenericResults = `
 		<div class="ui container">
 	<hr>
 	<div>
-		<pre>
-			{{.Content}}
-		</pre>
+		<pre>{{.Content}}</pre>
 	</div>
 {{end}}
 `
