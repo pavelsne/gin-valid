@@ -214,8 +214,8 @@ func validateNIX(valroot, resdir string) error {
 	}
 
 	// We need this for both the writing of the result and the badge
-	errtag := []byte("ERROR")
-	warntag := []byte("WARNING")
+	errtag := []byte("with errors")
+	warntag := []byte("with warnings")
 	var badge []byte
 	output := out.Bytes()
 	switch {
