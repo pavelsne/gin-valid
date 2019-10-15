@@ -54,27 +54,6 @@ const RepoList = `
 </div>
 	{{end}}
 `
-const repoPage = `
-{{define "content"}}
-	<div class="repository file list">
-		<div><b>{{.FullName}}</b></div>
-		<div><b>Available validators</b>:<br>
-		{{range $hookname, $hook := .Hooks}}
-			{{$hookname}}
-			{{if eq $hook.State 0}}
-				[Enabled] <a href="/repos/{{$.FullName}}/{{$hook.ID}}/disable">disable</a>
-			{{else}}
-					[Disabled] <a href="/repos/{{$.FullName}}/{{$hookname}}/enable">enable</a>
-			{{end}}
-			<br>
-		{{end}}
-		</div>
-		<div>{{.Description}} {{.Website}}</div>
-		<hr>
-	</div>
-{{end}}
-`
-
 const RepoPage = `
 {{define "content"}}
 	<div class="repository file list">
