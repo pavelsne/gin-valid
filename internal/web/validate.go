@@ -201,8 +201,7 @@ func validateNIX(valroot, resdir string) error {
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 
 	var out, serr bytes.Buffer
-	args := append([]string{"validate"}, nixfiles...)
-	cmd := exec.Command(srvcfg.Exec.NIX, args...)
+	cmd := exec.Command(srvcfg.Exec.NIX, nixfiles...)
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out

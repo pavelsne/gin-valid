@@ -27,64 +27,43 @@ RUN go build ./cmd/ginvalid
 
 ### ============================ ###
 
-# NIX BUILDER IMAGE
-FROM alpine:latest as nixbuilder
-
-# HDF5 is in the 'testing' repository
-RUN echo http://dl-2.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
-RUN apk --no-cache --no-progress add \
-    git \
-    openssh \
-    cmake \
-    doxygen \
-    git \
-    build-base \
-    boost-dev \
-    boost-static \
-    cppunit-dev \
-    hdf5-dev \
-    hdf5-static
-
-RUN git clone https://github.com/G-Node/nix /nix
-WORKDIR /nix
-RUN git checkout master
-RUN mkdir build
-WORKDIR build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=Yes -DBUILD_STATIC=on ..
-RUN make all
-
 # RUNNER IMAGE
 FROM alpine:latest
 
 # Runtime deps
-RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories \
-        && apk --no-cache --no-progress add \
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/testing/ >> /etc/apk/repositories
+RUN apk --no-cache --no-progress add \
         bash \
         git \
         nodejs \
         npm \
         openssh \
         python3 \
-        py3-lxml
+        py3-lxml \
+        py3-h5py \
+        py3-numpy
 
 # Install the BIDS validator
 RUN npm install -g bids-validator
 
-# Install odml for odML validation
+# Upgrade pip before install python packages
 RUN pip3 install -U pip
+
+# Install odml for odML validation
 RUN pip3 install odml
 
 # Copy odML validation script
 COPY ./scripts/odml-validate /bin
 
+# Install NIXPy for NIX validation
+# Use master branch until new beta is released
+RUN pip3 install --no-cache-dir -U git+https://github.com/G-Node/nixpy@master
+
 # Copy git-annex from builder image
 COPY --from=binbuilder /git-annex /git-annex
 ENV PATH="${PATH}:/git-annex/git-annex.linux"
 
-# Copy nixio-tool from nixbuilder image
-COPY --from=nixbuilder /nix/build/nixio-tool /bin
-
-RUN nixio-tool
 RUN mkdir -p /gin-valid/results/
 RUN mkdir -p /gin-valid/tmp/
 RUN mkdir -p /gin-valid/config
