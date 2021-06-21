@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/G-Node/gin-valid.svg?branch=master)](https://travis-ci.org/G-Node/gin-valid)
+[![Build](https://github.com/g-node/gin-valid/workflows/run-build/badge.svg?branch=master)](https://github.com/G-Node/gin-valid/actions)
 [![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-valid.svg)](https://hub.docker.com/r/gnode/gin-valid)
 
 # gin-valid
