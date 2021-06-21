@@ -1,6 +1,6 @@
 module github.com/G-Node/gin-valid
 
-go 1.12
+go 1.16
 
 require (
 	github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd
