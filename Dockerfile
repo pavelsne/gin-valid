@@ -28,7 +28,7 @@ RUN go build ./cmd/ginvalid
 ### ============================ ###
 
 # RUNNER IMAGE
-FROM alpine:latest
+FROM alpine:3.14
 
 # Runtime deps
 RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories
@@ -39,7 +39,8 @@ RUN apk --no-cache --no-progress add \
         nodejs \
         npm \
         openssh \
-        python3 \
+        py-pip \
+        python3-dev \
         py3-lxml \
         py3-h5py \
         py3-numpy
