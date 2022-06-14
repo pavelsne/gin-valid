@@ -21,7 +21,7 @@ jobs:
         with:
           go-version: '1.16'
       - name: Run go vet
-        run: go vet ./...
+        run: find . -name "*.go" -exec go vet {} \;
       - name: Run gofmt
         run: |
           gofmt -s -l .
