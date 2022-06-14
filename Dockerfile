@@ -40,8 +40,8 @@ RUN apk --no-cache --no-progress add \
         nodejs \
         npm \
         openssh \
-	py3-tomli \
-	py3-pip \
+        py3-tomli \
+        py3-pip \
         python3-dev \
         py3-lxml \
         py3-h5py \
@@ -80,7 +80,6 @@ ENV GIN_CONFIG_DIR /gin-valid/config/client
 # Copy binary and resources into runner image
 COPY --from=binbuilder /gin-valid/ginvalid /
 COPY ./assets /assets
-COPY ./config/cfg.json /cfg.json
 
-ENTRYPOINT /ginvalid --config=/cfg.json
+ENTRYPOINT /ginvalid --config=/gin-valid/config/cfg.json
 EXPOSE 3033
