@@ -78,7 +78,7 @@ jobs:
       - name: Fetch dependencies
         run: go get -d ./...
       - name: Run build
-        run: go build ./cmd/gindoid
+        run: go build ./cmd/ginvalid
       - name: Run tests
         run: go test ./...
   run-coverall:
