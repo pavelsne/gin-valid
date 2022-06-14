@@ -33,13 +33,15 @@ FROM alpine:3.14
 # Runtime deps
 RUN echo http://dl-2.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories
 RUN echo http://dl-2.alpinelinux.org/alpine/edge/testing/ >> /etc/apk/repositories
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/main/ >> /etc/apk/repositories
 RUN apk --no-cache --no-progress add \
         bash \
         git \
         nodejs \
         npm \
         openssh \
-        py-pip \
+        py3-tomli \
+        py3-pip \
         python3-dev \
         py3-lxml \
         py3-h5py \
