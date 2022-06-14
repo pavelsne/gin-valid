@@ -380,7 +380,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
-		if automatic{ //TODO should be automatic or not?
+		if automatic { //TODO should be automatic or not?
 			// Link 'latest' to new res dir to show processing
 			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
 			os.Remove(latestdir) // ignore error
@@ -421,7 +421,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 		}
 		log.ShowWrite("[Info] clone complete for '%s'", repopath)
 
-		if automatic{
+		if automatic {
 			// checkout specific commit then download all content
 			log.ShowWrite("[Info] git checkout %s", commit)
 			err = git.Checkout(commit, nil)
@@ -464,12 +464,12 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 }
 func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 	automatic := true
-	runValidatorBoth(validator,repopath,commit,commit,gcl,automatic)
+	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
 }
 
 func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
 	automatic := false
-	return runValidatorBoth(validator,repopath,uuid.New().String(),"HEAD",gcl,automatic)
+	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic)
 }
 
 // writeValFailure writes a badge and page content for when a hook payload is
