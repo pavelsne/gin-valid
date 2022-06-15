@@ -1,35 +1,43 @@
 package web
 
 import (
-	//"fmt"
-	//"io"
-	//"log"
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/G-Node/gin-valid/internal/config"
-	//"io/ioutil"
+	//"encoding/json"
 	"errors"
+	//"fmt"
+	gweb "github.com/G-Node/gin-cli/web"
+	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/gorilla/mux"
+	//"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestRepoDoesNotExists(t *testing.T) {
+	username := "cervemar"
+	reponame := "Testing"
+	token := "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"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	login, _ := doLogin("gin-user", "student")
-	tok, _ := getTokenBySession(login)
-	saveToken(tok)
-	r, _ := http.NewRequest("POST", "/validate/bids/wtf/wtf", bytes.NewReader(body))
-	w := httptest.NewRecorder()
 	srvcfg := config.Read()
-	srvcfg.Settings.HookSecret = "hooksecret"
+	srvcfg.Dir.Tokens = "."
 	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
+	w := httptest.NewRecorder()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
@@ -39,11 +47,9 @@ func TestBadToken(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
-	r, _ := http.NewRequest("POST", "/validate/bids/cervenkam/Testing", bytes.NewReader(body))
+	r, _ := http.NewRequest("POST", "/validate/bids/whatever/whatever", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	srvcfg := config.Read()
-	srvcfg.Settings.HookSecret = "hooksecret"
-	config.Set(srvcfg)
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))

@@ -619,7 +619,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	ut, err := getTokenByRepo(repopath)
 	if err != nil {
 		// We don't have a valid token for this repository: can't clone
-		log.ShowWrite("[Error] Bad Token")
+		log.ShowWrite("[Error] Bad Token: %v", err)
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, http.StatusUnauthorized, msg)
 		return
