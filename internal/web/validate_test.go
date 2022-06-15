@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestBadgeFail(t *testing.T) { //TODO
+func TestValidateBadgeFail(t *testing.T) { //TODO
 	username := "cervemar"
 	reponame := "Testing"
 	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
@@ -45,7 +45,7 @@ func TestBadgeFail(t *testing.T) { //TODO
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
 }
-func TestTMPFail(t *testing.T) {
+func TestValidateTMPFail(t *testing.T) {
 	username := "cervemar"
 	reponame := "Testing"
 	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
@@ -68,7 +68,7 @@ func TestTMPFail(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
 }
-func TestRepoDoesNotExists(t *testing.T) {
+func TestValidateRepoDoesNotExists(t *testing.T) {
 	username := "cervemar"
 	reponame := "Testing"
 	token := "wtf"
@@ -91,7 +91,7 @@ func TestRepoDoesNotExists(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
 }
-func TestBadToken(t *testing.T) {
+func TestValidateBadToken(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -103,7 +103,7 @@ func TestBadToken(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
 }
-func TestUnsupportedValidator(t *testing.T) {
+func TestValidateUnsupportedValidator(t *testing.T) {
 	body := []byte("{}")
 	r, _ := http.NewRequest("GET", "wtf", bytes.NewReader(body))
 	srvcfg := config.Read()
@@ -115,7 +115,7 @@ func TestUnsupportedValidator(t *testing.T) {
 	w := httptest.NewRecorder()
 	Validate(w, r)
 }
-func TestHookSecretFailed(t *testing.T) {
+func TestValidateHookSecretFailed(t *testing.T) {
 	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("{}"))
 	srvcfg := config.Read()
 	srvcfg.Settings.HookSecret = "hooksecret"
@@ -124,7 +124,7 @@ func TestHookSecretFailed(t *testing.T) {
 	w := httptest.NewRecorder()
 	Validate(w, r)
 }
-func TestBodyNotJSON(t *testing.T) {
+func TestValidateBodyNotJSON(t *testing.T) {
 	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("wtf"))
 	w := httptest.NewRecorder()
 	Validate(w, r)
@@ -135,7 +135,7 @@ type errReader int
 func (errReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("test error")
 }
-func TestBadBody(t *testing.T) {
+func TestValidateBadBody(t *testing.T) {
 	testRequest := httptest.NewRequest(http.MethodPost, "/something", errReader(0))
 	w := httptest.NewRecorder()
 	Validate(w, testRequest)

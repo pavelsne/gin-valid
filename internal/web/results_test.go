@@ -12,11 +12,35 @@ import (
 	"testing"
 )
 
-func TestResults(t *testing.T) {
+func TestResultsNoResults(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
 	r, _ := http.NewRequest("GET", "/results/bids/whatever/whatever/whatever", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	srvcfg := config.Read()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+}
+func TestResultsUnsupportedValidator(t *testing.T) {
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
+	r, _ := http.NewRequest("GET", "/results/wtf/whatever/whatever/whatever", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	srvcfg := config.Read()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+}
+func TestResultsIDNotSpecified(t *testing.T) {
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/results/{validator}/{user}/{repo}/", Results).Methods("GET")
+	r, _ := http.NewRequest("GET", "/results/bids/whatever/whatever/", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
