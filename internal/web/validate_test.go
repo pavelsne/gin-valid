@@ -10,13 +10,14 @@ import (
 	"encoding/hex"
 	"github.com/G-Node/gin-valid/internal/config"
 	//"io/ioutil"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
-func TestHookSecretOK(t *testing.T) {
+func TestUnsupportedValidator(t *testing.T) {
 	body := []byte("{}")
 	r, _ := http.NewRequest("GET", "wtf", bytes.NewReader(body))
 	srvcfg := config.Read()
@@ -36,4 +37,20 @@ func TestHookSecretFailed(t *testing.T) {
 	r.Header.Add("X-Gogs-Signature", "wtf")
 	w := httptest.NewRecorder()
 	Validate(w, r)
+}
+func TestBodyNotJSON(t *testing.T) {
+	r, _ := http.NewRequest("GET", "wtf", strings.NewReader("wtf"))
+	w := httptest.NewRecorder()
+	Validate(w, r)
+}
+
+type errReader int
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("test error")
+}
+func TestBadBody(t *testing.T) {
+	testRequest := httptest.NewRequest(http.MethodPost, "/something", errReader(0))
+	w := httptest.NewRecorder()
+	Validate(w, testRequest)
 }
