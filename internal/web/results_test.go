@@ -19,7 +19,7 @@ func TestResultsSomeResults(t *testing.T) {
 	username := "cervemar"
 	reponame := "Testing"
 	id := "1"
-	content := []byte("wtf")
+	content := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/results/{validator}/{user}/{repo}/{id}", Results).Methods("GET")
@@ -30,7 +30,7 @@ func TestResultsSomeResults(t *testing.T) {
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username), 0755)
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame), 0755)
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id), 0755)
-	f, err := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id, srvcfg.Label.ResultsFile), content, 0644)
+	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
