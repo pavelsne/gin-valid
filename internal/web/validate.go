@@ -564,6 +564,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
+	log.ShowWrite("[Info] Entering validation")
 	// TODO: Simplify/split this function
 	secret := r.Header.Get("X-Gogs-Signature")
 
@@ -595,6 +596,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	validator := vars["validator"]
 	if !helpers.SupportedValidator(validator) {
+		log.ShowWrite("[Error] unspuported validator (%v)",validator)
 		fail(w, http.StatusNotFound, "unsupported validator")
 		return
 	}
@@ -617,6 +619,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	ut, err := getTokenByRepo(repopath)
 	if err != nil {
 		// We don't have a valid token for this repository: can't clone
+		log.ShowWrite("[Error] Bad Token")
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, http.StatusUnauthorized, msg)
 		return
