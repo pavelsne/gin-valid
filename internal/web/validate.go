@@ -596,7 +596,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	validator := vars["validator"]
 	if !helpers.SupportedValidator(validator) {
-		log.ShowWrite("[Error] unspuported validator (%v)",validator)
+		log.ShowWrite("[Error] unspuported validator (%v)", validator)
 		fail(w, http.StatusNotFound, "unsupported validator")
 		return
 	}
