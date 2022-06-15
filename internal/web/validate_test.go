@@ -20,10 +20,33 @@ import (
 	"testing"
 )
 
+func TestValidateOK(t *testing.T) { //TODO
+	username := "cervemar"
+	reponame := "Testing"
+	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	srvcfg := config.Read()
+	srvcfg.Dir.Tokens = "."
+	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+}
 func TestRepoDoesNotExists(t *testing.T) {
 	username := "cervemar"
 	reponame := "Testing"
-	token := "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"
+	token := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
