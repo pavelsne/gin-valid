@@ -20,7 +20,32 @@ import (
 	"testing"
 )
 
-func TestValidateOK(t *testing.T) { //TODO
+func TestBadgeFail(t *testing.T) { //TODO
+	username := "cervemar"
+	reponame := "Testing"
+	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	srvcfg := config.Read()
+	srvcfg.Dir.Tokens = "."
+	os.Mkdir("tmp", 0755)
+	srvcfg.Dir.Temp = "./tmp"
+	config.Set(srvcfg)
+	var tok gweb.UserToken
+	tok.Username = username
+	tok.Token = token
+	saveToken(tok)
+	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	linkToRepo(username, filepath.Join(username, "/", reponame))
+	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+}
+func TestTMPFail(t *testing.T) {
 	username := "cervemar"
 	reponame := "Testing"
 	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
