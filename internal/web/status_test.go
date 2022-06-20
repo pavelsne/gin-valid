@@ -25,15 +25,12 @@ func TestStatusOK(t *testing.T) {
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	os.Mkdir(srvcfg.Dir.Result, 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids"), 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username), 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame), 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
+	os.MkdirAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
 	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge))
 	defer f.Close()
 	f.WriteString(content)
 	router.ServeHTTP(w, r)
+	os.RemoveAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder))
 }
 func TestStatusNoConent(t *testing.T) {
 	body := []byte("{}")
