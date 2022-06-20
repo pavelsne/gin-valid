@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -31,7 +30,7 @@ func TestStatusOK(t *testing.T) {
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username), 0755)
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame), 0755)
 	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
-	f, e := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge))
+	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge))
 	defer f.Close()
 	f.WriteString(content)
 	router.ServeHTTP(w, r)
