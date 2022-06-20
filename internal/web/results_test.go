@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -24,10 +23,7 @@ func TestResultsSomeResults(t *testing.T) {
 	r, _ := http.NewRequest("GET", filepath.Join("/results/bids", username, "/", reponame, "/", id), bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	srvcfg := config.Read()
-	fmt.Printf("%+v\n", os.Mkdir("bids", 0755))
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username), 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame), 0755)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id), 0755)
+	os.MkdirAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id), 0755)
 	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id, srvcfg.Label.ResultsFile))
 	defer f.Close()
 	f.WriteString(content)
@@ -35,6 +31,7 @@ func TestResultsSomeResults(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+	os.RemoveAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, id))
 }
 func TestResultsNoResults(t *testing.T) {
 	body := []byte("{}")
