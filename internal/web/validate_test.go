@@ -32,6 +32,8 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	srvcfg.Dir.Tokens = "."
 	os.Mkdir("tmp", 0755)
 	srvcfg.Dir.Temp = "./tmp"
+	srvcfg.GINAddresses.WebURL = "https://gin.dev.g-node.org:443"
+	srvcfg.GINAddresses.GitURL = "git@gin.dev.g-node.org:22"
 	config.Set(srvcfg)
 	var tok gweb.UserToken
 	tok.Username = username
