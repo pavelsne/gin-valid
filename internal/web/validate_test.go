@@ -20,10 +20,11 @@ import (
 	"testing"
 )
 
+var username = "valid-testing"
+var reponame = "Testing"
+var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
+
 func TestValidateBadgeFail(t *testing.T) { //TODO
-	username := "cervemar"
-	reponame := "Testing"
-	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -46,9 +47,6 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	router.ServeHTTP(w, r)
 }
 func TestValidateTMPFail(t *testing.T) {
-	username := "cervemar"
-	reponame := "Testing"
-	token := "d1221b5670fad98c590c5540e83e4c4bbf641cbc"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -69,9 +67,7 @@ func TestValidateTMPFail(t *testing.T) {
 	router.ServeHTTP(w, r)
 }
 func TestValidateRepoDoesNotExists(t *testing.T) {
-	username := "cervemar"
-	reponame := "Testing"
-	token := "wtf"
+	token2 := "wtf"
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -80,7 +76,7 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	config.Set(srvcfg)
 	var tok gweb.UserToken
 	tok.Username = username
-	tok.Token = token
+	tok.Token = token2
 	saveToken(tok)
 	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
