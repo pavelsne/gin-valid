@@ -26,10 +26,9 @@ func TestUserDoLoginOK(t *testing.T) {
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
 	config.Set(srvcfg)
-	f, _ := filepath.Abs(srvcfg.Dir.Tokens)
-	tokendir, _ := filepath.Abs(srvcfg.Dir.Tokens)
-	os.Mkdir(f, 0755)
-	os.Mkdir(tokendir, 0755)
-	os.Mkdir(filepath.Join(tokendir, "by-sessionid"), 0755)
+	pth, _ := filepath.Abs(srvcfg.Dir.Tokens)
+	tokendir := filepath.Join(pth, "by-sessionid")
+	os.MkdirAll(tokendir, 0755)
 	doLogin(username, password)
+	os.RemoveAll(tokendir)
 }
