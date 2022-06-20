@@ -16,8 +16,6 @@ import (
 )
 
 func TestResultsSomeResults(t *testing.T) {
-	username := "cervemar"
-	reponame := "Testing"
 	id := "1"
 	content := "wtf"
 	body := []byte("{}")
