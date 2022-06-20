@@ -1,10 +1,7 @@
 package web
 
 import (
-	//"encoding/json"
 	"github.com/G-Node/gin-valid/internal/config"
-	//"io/ioutil"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,5 +31,5 @@ func TestUserDoLoginOK(t *testing.T) {
 	os.Mkdir(f, 0755)
 	os.Mkdir(tokendir, 0755)
 	os.Mkdir(filepath.Join(tokendir, "by-sessionid"), 0755)
-	t2, e := doLogin(username, password)
+	doLogin(username, password)
 }
