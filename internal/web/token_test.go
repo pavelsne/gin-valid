@@ -21,3 +21,6 @@ func TestTokenGetTokenBySessionWrong(t *testing.T) {
 func TestTokenRmTokenRepoLinkWrong(t *testing.T) {
 	rmTokenRepoLink("wtf")
 }
+func TestTokenGetTokenByUsernameWrong(t *testing.T) {
+	getTokenByUsername("wtf")
+}
