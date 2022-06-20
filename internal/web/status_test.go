@@ -19,7 +19,7 @@ func TestStatusOK(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/status/{validator}/{user}/{repo}", Status).Methods("GET")
-	r, _ := http.NewRequest("GET", "/status/bids/whatever/whatever", bytes.NewReader(body))
+	r, _ := http.NewRequest("GET", filepath.Join("/status/bids", username, reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	srvcfg := config.Read()
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
