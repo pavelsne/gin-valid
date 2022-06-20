@@ -4,6 +4,9 @@ import (
 	//"encoding/json"
 	"github.com/G-Node/gin-valid/internal/config"
 	//"io/ioutil"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -26,5 +29,10 @@ func TestUserDoLoginOK(t *testing.T) {
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
 	config.Set(srvcfg)
-	doLogin(username, password)
+	f, _ := filepath.Abs(srvcfg.Dir.Tokens)
+	tokendir, _ := filepath.Abs(srvcfg.Dir.Tokens)
+	os.Mkdir(f, 0755)
+	os.Mkdir(tokendir, 0755)
+	os.Mkdir(filepath.Join(tokendir, "by-sessionid"), 0755)
+	t2, e := doLogin(username, password)
 }
