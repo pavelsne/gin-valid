@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 var username = "valid-testing"
@@ -46,7 +47,10 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	os.Mkdir("tmp", 0755)
 	router.ServeHTTP(w, r)
+	time.Sleep(5 * time.Second) //TODO HACK
+	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
 }
 func TestValidateTMPFail(t *testing.T) {
 	body := []byte("{}")
@@ -67,6 +71,7 @@ func TestValidateTMPFail(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+	time.Sleep(5 * time.Second) //TODO HACK
 }
 func TestValidateRepoDoesNotExists(t *testing.T) {
 	token2 := "wtf"
@@ -88,6 +93,7 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
 	router.ServeHTTP(w, r)
+	time.Sleep(5 * time.Second) //TODO HACK
 }
 func TestValidateBadToken(t *testing.T) {
 	body := []byte("{}")
