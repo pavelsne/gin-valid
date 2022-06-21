@@ -19,7 +19,7 @@ var PubValidate = `
 				<h4>Validators</h4>
 				<div class="inline field">
 					<div class="ui radio checkbox">
-						<input name="validator" value="bids" type="radio">
+						<input name="validator" value="bids" type="radio" checked="checked">
 						<label><strong>BIDS</strong> Brain Imaging Data Structure: link-to-bids-website</label>
 					</div>
 				</div>

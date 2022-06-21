@@ -630,6 +630,12 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	repopath := r.Form["repopath"][0]
+	validators := r.Form["validator"]
+	if len(validators) < 1 {
+		log.ShowWrite("[error] no validator selected")
+		fail(w, http.StatusBadRequest, "No validator has been selected")
+		return
+	}
 	validator := r.Form["validator"][0]
 
 	log.ShowWrite("[Info] About to validate repository '%s' with %s", repopath, ginuser)
