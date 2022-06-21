@@ -5,13 +5,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	//"encoding/json"
 	"errors"
-	//"fmt"
 	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/gorilla/mux"
-	//"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,6 +22,16 @@ var username = "valid-testing"
 var reponame = "Testing"
 var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
 
+func TestValiateBadConfig(t *testing.T) {
+	handleValidationConfig("wtf")
+}
+func TestValidateGoodConfig(t *testing.T) {
+	f, _ := os.Create("testing-config.json")
+	f.WriteString("{\"empty\": true}")
+	f.Close()
+	handleValidationConfig("testing-config.json")
+	os.RemoveAll("testing-config.json")
+}
 func TestValidateBadgeFail(t *testing.T) { //TODO
 	body := []byte("{}")
 	router := mux.NewRouter()
