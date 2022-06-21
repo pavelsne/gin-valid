@@ -167,7 +167,13 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
-	tmpl.Execute(w, nil)
+	srvcfg := config.Read()
+	data := struct {
+		GinURL string
+	}{
+		srvcfg.GINAddresses.WebURL,
+	}
+	tmpl.Execute(w, &data)
 }
 
 // LoginPost logs in the user to the GIN server, storing a session token.
@@ -291,12 +297,15 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 			reposInactive = append(reposInactive, rhinfo)
 		}
 	}
+	srvcfg := config.Read()
 	allrepos := struct {
 		Active   []repoHooksInfo
 		Inactive []repoHooksInfo
+		GinURL   string
 	}{
 		reposActive,
 		reposInactive,
+		srvcfg.GINAddresses.WebURL,
 	}
 	tmpl.Execute(w, &allrepos)
 }
@@ -446,6 +455,15 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		hooks = make(map[string]ginhook)
 	}
-	repohi := repoHooksInfo{repoinfo, hooks}
+	srvcfg := config.Read()
+	repohi := struct {
+		gogs.Repository
+		Hooks  map[string]ginhook
+		GinURL string
+	}{
+		repoinfo,
+		hooks,
+		srvcfg.GINAddresses.WebURL,
+	}
 	tmpl.Execute(w, &repohi)
 }

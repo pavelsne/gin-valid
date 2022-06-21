@@ -167,11 +167,13 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("%s validation for %s/%s", validator, user, repo)
+	srvcfg := config.Read()
 	info := struct {
 		Badge   template.HTML
 		Header  string
 		Content string
-	}{template.HTML(badge), head, string(progressmsg)}
+		GinURL  string
+	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -208,11 +210,13 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("BIDS validation for %s/%s", user, repo)
+	srvcfg := config.Read()
 	info := struct {
 		Badge  template.HTML
 		Header string
 		*BidsResultStruct
-	}{template.HTML(badge), head, &resBIDS}
+		GinURL string
+	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -241,11 +245,13 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("NIX validation for %s/%s", user, repo)
+	srvcfg := config.Read()
 	info := struct {
 		Badge   template.HTML
 		Header  string
 		Content string
-	}{template.HTML(badge), head, string(content)}
+		GinURL  string
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -274,11 +280,13 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("odML validation for %s/%s", user, repo)
+	srvcfg := config.Read()
 	info := struct {
 		Badge   template.HTML
 		Header  string
 		Content string
-	}{template.HTML(badge), head, string(content)}
+		GinURL  string
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {

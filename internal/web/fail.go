@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/log"
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 )
@@ -26,14 +27,17 @@ func fail(w http.ResponseWriter, status int, message string) {
 		w.Write([]byte(message))
 		return
 	}
+	srvcfg := config.Read()
 	errinfo := struct {
 		StatusCode int
 		StatusText string
 		Message    string
+		GinURL     string
 	}{
 		status,
 		http.StatusText(status),
 		message,
+		srvcfg.GINAddresses.WebURL,
 	}
 	tmpl.Execute(w, &errinfo)
 }
