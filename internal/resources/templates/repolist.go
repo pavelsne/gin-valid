@@ -26,7 +26,7 @@ const RepoList = `
 							</div>
 						</div>
 						<p class="has-emoji">{{.Description}}</p>
-						<a href="{{.HTMLURL}}">Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">Repository hooks</a>
+						<a href="{{.HTMLURL}}">&#128279; Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">&#128279; Repository hooks</a>
 					</div>
 				</div>
 			</div>
@@ -45,7 +45,7 @@ const RepoList = `
 							<a class="name" href="/repos/{{$repopath}}/hooks">{{$repopath}}</a>
 						</div>
 						<p class="has-emoji">{{.Description}}</p>
-						<a href="{{.HTMLURL}}">Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">Repository hooks</a>
+						<a href="{{.HTMLURL}}">&#128279; Repository on GIN</a> | <a href="{{.HTMLURL}}/settings/hooks">&#128279; Repository hooks</a>
 					</div>
 				</div>
 			</div>
