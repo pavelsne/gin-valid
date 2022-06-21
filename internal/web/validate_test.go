@@ -8,6 +8,7 @@ import (
 	"errors"
 	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/internal/config"
+	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -25,12 +26,28 @@ var token = "4c82d07cccf103e071ad9ee8aec82c34d7003c6c"
 func TestValiateBadConfig(t *testing.T) {
 	handleValidationConfig("wtf")
 }
-func TestValidateGoodConfig(t *testing.T) {
+func TestValidateNotYAML(t *testing.T) {
 	f, _ := os.Create("testing-config.json")
-	f.WriteString("{\"empty\": true}")
+	f.WriteString("foo: somebody said I should put a colon here: so I did")
 	f.Close()
 	handleValidationConfig("testing-config.json")
 	os.RemoveAll("testing-config.json")
+}
+func TestValidateGoodConfig(t *testing.T) {
+	f, _ := os.Create("testing-config.json")
+	f.WriteString("empty: \"true\"")
+	f.Close()
+	handleValidationConfig("testing-config.json")
+	os.RemoveAll("testing-config.json")
+}
+func TestValidateBIDSNoData(t *testing.T) {
+	validateBIDS("wtf", "wtf")
+}
+func TestValidateNIXNoData(t *testing.T) {
+	validateNIX("wtf", "wtf")
+}
+func TestValidateODMLNoData(t *testing.T) {
+	validateODML("wtf", "wtf")
 }
 func TestValidateBadgeFail(t *testing.T) { //TODO
 	body := []byte("{}")
@@ -58,6 +75,48 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	router.ServeHTTP(w, r)
 	time.Sleep(5 * time.Second) //TODO HACK
 	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
+}
+func TestValidatePubBrokenPubValidate(t *testing.T) {
+	original := templates.PubValidate
+	templates.PubValidate = "{{ WTF? }"
+	srvcfg := config.Read()
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
+	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+	templates.PubValidate = original
+}
+func TestValidatePubBrokenLayout(t *testing.T) {
+	original := templates.Layout
+	templates.Layout = "{{ WTF? }"
+	srvcfg := config.Read()
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
+	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
+	templates.Layout = original
+}
+func TestValidatePub(t *testing.T) {
+	srvcfg := config.Read()
+	body := []byte("{}")
+	router := mux.NewRouter()
+	router.HandleFunc("/pubvalidate", PubValidateGet).Methods("GET")
+	r, _ := http.NewRequest("GET", "/pubvalidate", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
+	sig.Write(body)
+	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
+	router.ServeHTTP(w, r)
 }
 func TestValidateTMPFail(t *testing.T) {
 	body := []byte("{}")
