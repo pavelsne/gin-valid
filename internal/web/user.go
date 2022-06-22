@@ -167,11 +167,14 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
+	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	data := struct {
-		GinURL string
+		GinURL      string
+		CurrentYear int
 	}{
 		srvcfg.GINAddresses.WebURL,
+		year,
 	}
 	tmpl.Execute(w, &data)
 }
@@ -297,15 +300,18 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 			reposInactive = append(reposInactive, rhinfo)
 		}
 	}
+	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	allrepos := struct {
-		Active   []repoHooksInfo
-		Inactive []repoHooksInfo
-		GinURL   string
+		Active      []repoHooksInfo
+		Inactive    []repoHooksInfo
+		GinURL      string
+		CurrentYear int
 	}{
 		reposActive,
 		reposInactive,
 		srvcfg.GINAddresses.WebURL,
+		year,
 	}
 	tmpl.Execute(w, &allrepos)
 }
@@ -455,15 +461,18 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		hooks = make(map[string]ginhook)
 	}
+	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	repohi := struct {
 		gogs.Repository
-		Hooks  map[string]ginhook
-		GinURL string
+		Hooks       map[string]ginhook
+		GinURL      string
+		CurrentYear int
 	}{
 		repoinfo,
 		hooks,
 		srvcfg.GINAddresses.WebURL,
+		year,
 	}
 	tmpl.Execute(w, &repohi)
 }

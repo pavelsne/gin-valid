@@ -3,6 +3,7 @@ package web
 import (
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/log"
@@ -27,17 +28,20 @@ func fail(w http.ResponseWriter, status int, message string) {
 		w.Write([]byte(message))
 		return
 	}
+	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	errinfo := struct {
-		StatusCode int
-		StatusText string
-		Message    string
-		GinURL     string
+		StatusCode  int
+		StatusText  string
+		Message     string
+		GinURL      string
+		CurrentYear int
 	}{
 		status,
 		http.StatusText(status),
 		message,
 		srvcfg.GINAddresses.WebURL,
+		year,
 	}
 	tmpl.Execute(w, &errinfo)
 }

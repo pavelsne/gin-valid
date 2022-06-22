@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -619,11 +620,14 @@ func PubValidateGet(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
+	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	data := struct {
-		GinURL string
+		GinURL      string
+		CurrentYear int
 	}{
 		srvcfg.GINAddresses.WebURL,
+		year,
 	}
 	tmpl.Execute(w, &data)
 }
