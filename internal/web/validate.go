@@ -619,7 +619,13 @@ func PubValidateGet(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "something went wrong")
 		return
 	}
-	tmpl.Execute(w, nil)
+	srvcfg := config.Read()
+	data := struct {
+		GinURL string
+	}{
+		srvcfg.GINAddresses.WebURL,
+	}
+	tmpl.Execute(w, &data)
 }
 
 // PubValidatePost parses the POST data from the root form and calls the

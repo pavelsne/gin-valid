@@ -29,10 +29,10 @@ var Layout = `
 					<div class="ui grid">
 						<div class="column">
 							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
+								<a class="item brand" href="{{.GinURL}}">
 									<img class="ui mini image" src="/assets/favicon.png">
 								</a>
-								<a class="item" href="https://gin.g-node.org/">Back to GIN</a>
+								<a class="item" href="{{.GinURL}}">Back to GIN</a>
 								<a class="item" href="/repos">Repositories</a>
 								<a class="item" href="/pubvalidate">One-time validation</a>
 								<a class="item" href="/login">Login</a>
