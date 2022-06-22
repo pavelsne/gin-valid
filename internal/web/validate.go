@@ -329,11 +329,11 @@ func validateODML(valroot, resdir string) error {
 	return nil
 }
 
-func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
+func runValidatorBoth(validator, repopath, commit, commitname string, gcl *ginclient.Client, automatic bool) string {
+	respath := filepath.Join(validator, repopath, commit)
 	go func() {
-		log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commit)
+		log.ShowWrite("[Info] Running %s validation on repository %q (%s)", validator, repopath, commitname)
 
-		srvcfg := config.Read()
 		// TODO add check if a repo is currently being validated. Since the cloning
 		// can potentially take quite some time prohibit running the same
 		// validation at the same time. Could also move this to a mapped go
@@ -343,137 +343,6 @@ func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
 
 		// TODO: Use the payload data to check if the specific commit has already
 		// been validated
-
-		resdir := filepath.Join(srvcfg.Dir.Result, validator, repopath, commit)
-		// Create results folder if necessary
-		// CHECK: can this lead to a race condition, if a job for the same user/repo combination is started twice in short succession?
-		err := os.MkdirAll(resdir, os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] creating %q results folder: %s", resdir, err.Error())
-			return
-		}
-
-		tmpdir, err := ioutil.TempDir(srvcfg.Dir.Temp, validator)
-		if err != nil {
-			log.ShowWrite("[Error] Internal error: Couldn't create temporary gin directory: %s", err.Error())
-			writeValFailure(resdir)
-			return
-		}
-
-		repopathparts := strings.SplitN(repopath, "/", 2)
-		_, repo := repopathparts[0], repopathparts[1]
-		valroot := filepath.Join(tmpdir, repo)
-
-		// Enable cleanup once tried and tested
-		defer os.RemoveAll(tmpdir)
-
-		// Add the processing badge and message to display while the validator runs
-		procBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
-		err = ioutil.WriteFile(procBadge, []byte(resources.ProcessingBadge), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results badge for %q", valroot)
-		}
-
-		outFile := filepath.Join(resdir, srvcfg.Label.ResultsFile)
-		err = ioutil.WriteFile(outFile, []byte(progressmsg), os.ModePerm)
-		if err != nil {
-			log.ShowWrite("[Error] writing results file for %q", valroot)
-		}
-
-		// Link 'latest' to new res dir to show processing
-		latestdir := filepath.Join(filepath.Dir(resdir), "latest")
-		os.Remove(latestdir) // ignore error
-		err = os.Symlink(resdir, latestdir)
-		if err != nil {
-			log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
-			// Don't return if processing badge write fails
-		}
-
-		err = makeSessionKey(gcl, commit)
-		if err != nil {
-			log.ShowWrite("[error] failed to create session key: %s", err.Error())
-			writeValFailure(resdir)
-			return
-		}
-		defer deleteSessionKey(gcl, commit)
-
-		// TODO: if (annexed) content is not available yet, wait and retry.  We
-		// would have to set a max timeout for this.  The issue is that when a user
-		// does a 'gin upload' a push happens immediately and the hook is
-		// triggered, but annexed content is only transferred after the push and
-		// could take a while (hours?). The validation service should try to
-		// download content after the transfer is complete, or should keep retrying
-		// until it's available, with a timeout. We could also make it more
-		// efficient by only downloading the content in the directories which are
-		// specified in the validator config (if it exists).
-
-		glog.Init()
-		clonechan := make(chan git.RepoFileStatus)
-		os.Chdir(tmpdir)
-		go gcl.CloneRepo(repopath, clonechan)
-		for stat := range clonechan {
-			if stat.Err != nil {
-				log.ShowWrite("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s", stat.State, stat.Progress)
-		}
-		log.ShowWrite("[Info] clone complete for '%s'", repopath)
-
-		// checkout specific commit then download all content
-		log.ShowWrite("[Info] git checkout %s", commit)
-		err = git.Checkout(commit, nil)
-		if err != nil {
-			log.ShowWrite("[Error] failed to checkout commit %q: %s", commit, err.Error())
-			writeValFailure(resdir)
-			return
-		}
-
-		log.ShowWrite("[Info] Downloading content")
-		getcontentchan := make(chan git.RepoFileStatus)
-		// TODO: Get only the content for the files that will be validated
-		go gcl.GetContent([]string{"."}, getcontentchan)
-		for stat := range getcontentchan {
-			if stat.Err != nil {
-				log.ShowWrite("[Error] failed to get content for %q: %s", repopath, stat.Err.Error())
-				writeValFailure(resdir)
-				return
-			}
-			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
-		}
-		log.ShowWrite("[Info] get-content complete")
-
-		switch validator {
-		case "bids":
-			err = validateBIDS(valroot, resdir)
-		case "nix":
-			err = validateNIX(valroot, resdir)
-		case "odml":
-			err = validateODML(valroot, resdir)
-		default:
-			err = fmt.Errorf("[Error] invalid validator name: %s", validator)
-		}
-
-		if err != nil {
-			writeValFailure(resdir)
-		}
-	}()
-}
-
-func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
-	uuid := uuid.New()
-	respath := filepath.Join(validator, repopath, uuid.String())
-	go func() {
-		log.ShowWrite("[Info] Running %s validation on repository %q (HEAD)", validator, repopath)
-
-		// TODO add check if a repo is currently being validated. Since the cloning
-		// can potentially take quite some time prohibit running the same
-		// validation at the same time. Could also move this to a mapped go
-		// routine and if the same repo is validated twice, the first occurrence is
-		// stopped and cleaned up while the second starts anew - to make sure its
-		// always the latest state of the repository that is being validated.
-
 		srvcfg := config.Read()
 		resdir := filepath.Join(srvcfg.Dir.Result, respath)
 
@@ -512,14 +381,23 @@ func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
 			log.ShowWrite("[Error] writing results file for %q", valroot)
 		}
 
-		// err = makeSessionKey(gcl, commit)
-		// if err != nil {
-		// 	log.ShowWrite("[error] failed to create session key: %s", err.Error())
-		// 	writeValFailure(resdir)
-		// 	return
-		// }
-		// defer deleteSessionKey(gcl, commit)
-
+		if automatic { //TODO should be automatic or not?
+			// Link 'latest' to new res dir to show processing
+			latestdir := filepath.Join(filepath.Dir(resdir), "latest")
+			os.Remove(latestdir) // ignore error
+			err = os.Symlink(resdir, latestdir)
+			if err != nil {
+				log.ShowWrite("[Error] failed to link %q to %q: %s", resdir, latestdir, err.Error())
+				// Don't return if processing badge write fails
+			}
+			err = makeSessionKey(gcl, commit)
+			if err != nil {
+				log.ShowWrite("[error] failed to create session key: %s", err.Error())
+				writeValFailure(resdir)
+				return
+			}
+			defer deleteSessionKey(gcl, commit)
+		}
 		// TODO: if (annexed) content is not available yet, wait and retry.  We
 		// would have to set a max timeout for this.  The issue is that when a user
 		// does a 'gin upload' a push happens immediately and the hook is
@@ -544,6 +422,16 @@ func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
 		}
 		log.ShowWrite("[Info] clone complete for '%s'", repopath)
 
+		if automatic {
+			// checkout specific commit then download all content
+			log.ShowWrite("[Info] git checkout %s", commit)
+			err = git.Checkout(commit, nil)
+			if err != nil {
+				log.ShowWrite("[Error] failed to checkout commit %q: %s", commit, err.Error())
+				writeValFailure(resdir)
+				return
+			}
+		}
 		log.ShowWrite("[Info] Downloading content")
 		getcontentchan := make(chan git.RepoFileStatus)
 		// TODO: Get only the content for the files that will be validated
@@ -574,6 +462,15 @@ func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
 		}
 	}()
 	return respath
+}
+func runValidator(validator, repopath, commit string, gcl *ginclient.Client) {
+	automatic := true
+	runValidatorBoth(validator, repopath, commit, commit, gcl, automatic)
+}
+
+func runValidatorPub(validator, repopath string, gcl *ginclient.Client) string {
+	automatic := false
+	return runValidatorBoth(validator, repopath, uuid.New().String(), "HEAD", gcl, automatic)
 }
 
 // writeValFailure writes a badge and page content for when a hook payload is
@@ -683,6 +580,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 // repository is a valid BIDS dataset.
 // Any cloned files are cleaned up after the check is done.
 func Validate(w http.ResponseWriter, r *http.Request) {
+	log.ShowWrite("[Info] Entering validation")
 	// TODO: Simplify/split this function
 	secret := r.Header.Get("X-Gogs-Signature")
 
@@ -714,6 +612,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	validator := vars["validator"]
 	if !helpers.SupportedValidator(validator) {
+		log.ShowWrite("[Error] unspuported validator (%v)", validator)
 		fail(w, http.StatusNotFound, "unsupported validator")
 		return
 	}
@@ -736,6 +635,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	ut, err := getTokenByRepo(repopath)
 	if err != nil {
 		// We don't have a valid token for this repository: can't clone
+		log.ShowWrite("[Error] Bad Token: %v", err)
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
 		fail(w, http.StatusUnauthorized, msg)
 		return
