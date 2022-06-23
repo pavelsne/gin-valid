@@ -7,7 +7,9 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -17,6 +19,22 @@ import (
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
 )
+
+// ResultsHistoryStruct is the struct containing references to
+// all validations already performed
+type ResultsHistoryStruct struct {
+	Results []Result
+}
+
+// Result is the struct containing info about a single
+// validator run
+type Result struct {
+	Href  string
+	Alt   string
+	Text1 string
+	Text2 string
+	Badge template.HTML
+}
 
 // BidsResultStruct is the struct to parse a full BIDS validation json.
 type BidsResultStruct struct {
@@ -111,8 +129,14 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	srvcfg := config.Read()
 	resID, ok := vars["id"]
 	if !ok {
-		fmt.Println("Results ID not specified: Rendering default")
-		resID = srvcfg.Label.ResultsFolder
+		resHistory := resultsHistory(validator, user, repo)
+		if len(resHistory.Results) < 1 {
+			log.ShowWrite("[Info] Results ID not specified: Rendering the default one")
+			resID = srvcfg.Label.ResultsFolder
+		} else {
+			log.ShowWrite("[Info] Results ID not specified: Rendering the last one")
+			resID = resHistory.Results[0].Alt
+		}
 	}
 	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo, resID)
 
@@ -132,7 +156,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 
 	if string(content) == progressmsg {
 		// validation in progress
-		renderInProgress(w, r, badge, strings.ToUpper(validator), user, repo)
+		renderInProgress(w, r, badge, validator, user, repo)
 		return
 	}
 
@@ -166,8 +190,9 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 	}
 
 	// Parse results into html template and serve it
-	head := fmt.Sprintf("%s validation for %s/%s", validator, user, repo)
+	head := fmt.Sprintf("%s validation for %s/%s", strings.ToUpper(validator), user, repo)
 	srvcfg := config.Read()
+	resHistory := resultsHistory(validator, user, repo)
 	year, _, _ := time.Now().Date()
 	info := struct {
 		Badge       template.HTML
@@ -175,7 +200,8 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 		Content     string
 		GinURL      string
 		CurrentYear int
-	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year}
+		*ResultsHistoryStruct
+	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -183,6 +209,49 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
 		return
 	}
+}
+
+func myReadDir(dirname string) ([]os.FileInfo, error) {
+	f, err := os.Open(dirname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	list, err := f.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].ModTime().Unix() > list[j].ModTime().Unix() })
+	return list, nil
+}
+
+func resultsHistory(validator, user, repo string) ResultsHistoryStruct {
+	var ret ResultsHistoryStruct
+	srvcfg := config.Read()
+	resdir := filepath.Join(srvcfg.Dir.Result, validator, user, repo)
+	fileinfos, err := myReadDir(resdir)
+	if err != nil {
+		log.ShowWrite("[Error] cannot retrieve results history '%s/%s' result: %s\n", user, repo, err.Error())
+		return ret
+	}
+	for _, i := range fileinfos {
+		pth := filepath.Join("/results", strings.Split(resdir, "results/")[1], i.Name())
+		fp := filepath.Join(resdir, i.Name(), srvcfg.Label.ResultsBadge)
+		badge, err := ioutil.ReadFile(fp)
+		if err != nil {
+			badge = []byte("<svg></svg>")
+		}
+		if i.IsDir() && i.Name() != "." {
+			var res Result
+			res.Href = pth
+			res.Alt = i.Name()
+			res.Text1 = i.ModTime().Format("2006-01-02")
+			res.Text2 = i.ModTime().Format("15:04:05")
+			res.Badge = template.HTML(badge)
+			ret.Results = append(ret.Results, res)
+		}
+	}
+	return ret
 }
 
 func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, content []byte, user, repo string) {
@@ -214,13 +283,15 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	head := fmt.Sprintf("BIDS validation for %s/%s", user, repo)
 	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
+	resHistory := resultsHistory("bids", user, repo)
 	info := struct {
 		Badge  template.HTML
 		Header string
 		*BidsResultStruct
 		GinURL      string
 		CurrentYear int
-	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year}
+		*ResultsHistoryStruct
+	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -249,6 +320,7 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("NIX validation for %s/%s", user, repo)
+	resHistory := resultsHistory("nix", user, repo)
 	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	info := struct {
@@ -257,7 +329,8 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 		Content     string
 		GinURL      string
 		CurrentYear int
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year}
+		*ResultsHistoryStruct
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -286,6 +359,7 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("odML validation for %s/%s", user, repo)
+	resHistory := resultsHistory("odml", user, repo)
 	srvcfg := config.Read()
 	year, _, _ := time.Now().Date()
 	info := struct {
@@ -294,7 +368,8 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 		Content     string
 		GinURL      string
 		CurrentYear int
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year}
+		*ResultsHistoryStruct
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {

@@ -339,6 +339,9 @@ textarea#description {
 .ui.ginsearch > .results > :last-child {
   border-radius: 0em 0em 0.28571429rem 0.28571429rem;
 }
+#history {
+  margin-bottom: 20px;
+}
 /*--------------
     Result
 ---------------*/
