@@ -126,7 +126,7 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	content, err := ioutil.ReadFile(fp)
 	if err != nil {
 		log.ShowWrite("[Error] serving '%s/%s' result: %s\n", user, repo, err.Error())
-		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("404 Nothing to see here...")))
+		renderNotFound(w, r, badge, strings.ToUpper(validator), user, repo)
 		return
 	}
 
@@ -149,6 +149,42 @@ func Results(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+
+func renderNotFound(w http.ResponseWriter, r *http.Request, badge []byte, validator string, user, repo string) {
+	tmpl := template.New("layout")
+	tmpl, err := tmpl.Parse(templates.Layout)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+	tmpl, err = tmpl.Parse(templates.GenericResults)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+
+	// Parse results into html template and serve it
+	head := fmt.Sprintf("%s validation for %s/%s", validator, user, repo)
+	srvcfg := config.Read()
+	year, _, _ := time.Now().Date()
+	info := struct {
+		Badge       template.HTML
+		Header      string
+		Content     template.HTML
+		GinURL      string
+		CurrentYear int
+	}{template.HTML(badge), head, template.HTML(notfound), srvcfg.GINAddresses.WebURL, year}
+
+	err = tmpl.ExecuteTemplate(w, "layout", info)
+	if err != nil {
+		log.ShowWrite("[Error] '%s/%s' result: %s\n", user, repo, err.Error())
+		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
+		return
+	}
+}
+
 
 func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, validator string, user, repo string) {
 	tmpl := template.New("layout")
