@@ -1,0 +1,112 @@
+name: run-build
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  linters:
+    # go vet and go fmt are mandatory.
+    # Other linters are optional but should dispay issues.
+    name: Linters
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - name: Run go vet
+        run: |
+          go mod download github.com/mattn/go-isatty
+          go vet ./...
+      - name: Run gofmt
+        run: |
+          gofmt -s -l .
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
+      - name: Run golint
+        run: |
+          go get golang.org/x/lint/golint
+          golint ./...
+        continue-on-error: true
+      - name: Run staticcheck
+        run: |
+          go get honnef.co/go/tools/cmd/staticcheck
+          staticcheck ./...
+        continue-on-error: true
+      - name: Run errcheck
+        run: |
+          go get github.com/kisielk/errcheck
+          errcheck ./...
+        continue-on-error: true
+
+  build:
+    name: build
+    strategy:
+      matrix:
+        go-version: [1.14.x, 1.15.x, 1.16.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run unit tests
+        run: |
+          go mod download github.com/mattn/go-isatty
+          go build ./cmd/ginvalid
+  tests:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go 1.16
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - name: Install git annex dependency
+        run: |
+          bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+          sudo apt-get update -qq
+          sudo apt-get install git-annex-standalone
+          git version
+          git annex version
+      - name: Show Go version
+        run: go version
+      - name: Fetch dependencies
+        run: go get -d ./...
+      - name: Run build
+        run: go build ./cmd/ginvalid
+      - name: Run tests
+        run: go test ./...
+  run-coverall:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use golang version 1.17
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17'
+      - name: Install git annex dependency
+        run: |
+          bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+          sudo apt-get update -qq
+          sudo apt-get install git-annex-standalone
+          git version
+          git annex version
+      - name: Fetch dependencies
+        run: |
+          go get -d ./...
+          go get github.com/mattn/goveralls
+      - name: Create test coverage
+        run: go test -covermode atomic -coverprofile=covprofile ./...
+      - name: Send coverage
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: goveralls -coverprofile=covprofile -service=github
