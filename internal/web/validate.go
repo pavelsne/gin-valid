@@ -635,6 +635,17 @@ func PubValidateGet(w http.ResponseWriter, r *http.Request) {
 // PubValidatePost parses the POST data from the root form and calls the
 // validator using the built-in ServiceWaiter.
 func PubValidatePost(w http.ResponseWriter, r *http.Request) {
+	validatePost(w, r, true)
+}
+
+// PriValidatePost parses the POST data from the root form and calls the
+// validator using the built-in ServiceWaiter. Private repositories are
+// allowed here
+func PriValidatePost(w http.ResponseWriter, r *http.Request) {
+	validatePost(w, r, false)
+}
+
+func validatePost(w http.ResponseWriter, r *http.Request, private bool) {
 	srvcfg := config.Read()
 	ginuser := srvcfg.Settings.GINUser
 
@@ -665,7 +676,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, err.Error())
 		return
 	}
-	if repoinfo.Private {
+	if repoinfo.Private && private {
 		// We (the built in ServiceWaiter) have access, but the repository is
 		// marked private. This can happen if an owner of the private
 		// repository adds the user as a collaborator to the repository. We

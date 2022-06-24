@@ -84,6 +84,11 @@ const RepoPage = `
 					{{range $hookname, $hook := .Hooks}}
 						<tr>
 							<td class="name text bold four wide"><a href="">{{$hookname | ToUpper}}</a></td>
+							<td class="name four wide"><form action="/privalidate" method="post">
+								<input type="hidden" name="validator" value="{{$hookname}}" />
+								<input type="hidden" name="repopath" value="{{$.FullName}}" />
+								<input type="submit" value="Run validation" />
+							</form></td>
 							{{if eq $hook.State 0}}
 								<td class="name nine wide"><a href="/results/{{$hookname | ToLower}}/{{$.FullName}}">RESULTS</a></td>
 								<td class="name three wide"><a href="/repos/{{$.FullName}}/{{$hook.ID}}/disable">DEACTIVATE</a></td>

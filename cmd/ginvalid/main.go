@@ -41,6 +41,7 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/", web.Root)
 	r.HandleFunc("/pubvalidate", web.PubValidateGet).Methods("GET")
 	r.HandleFunc("/pubvalidate", web.PubValidatePost).Methods("POST")
+	r.HandleFunc("/privalidate", web.PriValidatePost).Methods("POST")
 	r.HandleFunc("/validate/{validator}/{user}/{repo}", web.Validate).Methods("POST")
 	r.HandleFunc("/status/{validator}/{user}/{repo}", web.Status).Methods("GET")
 	r.HandleFunc("/results/{validator}/{user}/{repo}", web.Results).Methods("GET")
