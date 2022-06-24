@@ -153,6 +153,11 @@ func doLogin(username, password string) (string, error) {
 
 // LoginGet renders the login form
 func LoginGet(w http.ResponseWriter, r *http.Request) {
+	loginForm(w, r, "")
+}
+
+// loginForm renders the login form
+func loginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
 	log.Write("Login page")
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
@@ -170,11 +175,13 @@ func LoginGet(w http.ResponseWriter, r *http.Request) {
 	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	data := struct {
-		GinURL      string
-		CurrentYear int
+		GinURL       string
+		CurrentYear  int
+		ErrorMessage string
 	}{
 		srvcfg.GINAddresses.WebURL,
 		year,
+		errMsg,
 	}
 	tmpl.Execute(w, &data)
 }
@@ -187,13 +194,13 @@ func LoginPost(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if username == "" || password == "" {
 		log.Write("[error] Invalid form data")
-		fail(w, http.StatusUnauthorized, "authentication failed")
+		loginForm(w, r, "Authentication failed")
 		return
 	}
 	sessionid, err := doLogin(username, password)
 	if err != nil {
 		log.Write("[error] Login failed: %s", err.Error())
-		fail(w, http.StatusUnauthorized, "authentication failed")
+		loginForm(w, r, "Authentication failed")
 		return
 	}
 
