@@ -173,7 +173,8 @@ func validateNIX(valroot, resdir string) error {
 
 	// TODO: Allow validator config that specifies file paths to validate
 	// For now we validate everything
-	nixfiles := make([]string, 0)
+	nixargs := make([]string, 0)
+	nixargs = append(nixargs, "validate")
 	// Find all NIX files (.nix) in the repository
 	nixfinder := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -187,7 +188,7 @@ func validateNIX(valroot, resdir string) error {
 		}
 
 		if strings.ToLower(filepath.Ext(path)) == ".nix" {
-			nixfiles = append(nixfiles, path)
+			nixargs = append(nixargs, path)
 		}
 		return nil
 	}
@@ -202,7 +203,7 @@ func validateNIX(valroot, resdir string) error {
 	outBadge := filepath.Join(resdir, srvcfg.Label.ResultsBadge)
 
 	var out, serr bytes.Buffer
-	cmd := exec.Command(srvcfg.Exec.NIX, nixfiles...)
+	cmd := exec.Command(srvcfg.Exec.NIX, nixargs...)
 	out.Reset()
 	serr.Reset()
 	cmd.Stdout = &out
