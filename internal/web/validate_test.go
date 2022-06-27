@@ -10,6 +10,7 @@ import (
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -79,17 +80,20 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
 	srvcfg := config.Read()
-	srvcfg.Dir.Tokens = "."
-	os.Mkdir("tmp", 0755)
-	srvcfg.Dir.Temp = "./tmp"
+	resultfldr, _ := ioutil.TempDir("", "results")
+	tempfldr, _ := ioutil.TempDir("", "temp")
+	tokenfldr, _ := ioutil.TempDir("", "token")
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Result = resultfldr
+	srvcfg.Dir.Temp = tempfldr
+	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
 	r, err := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	if err != nil {
@@ -99,10 +103,8 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	os.Mkdir("tmp", 0755)
 	router.ServeHTTP(w, r)
 	time.Sleep(5 * time.Second) //TODO HACK
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Tokens, "by-repo"))
 	status := w.Code
 	if status != http.StatusOK {
 		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
@@ -172,13 +174,20 @@ func TestValidateTMPFail(t *testing.T) {
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
 	srvcfg := config.Read()
-	srvcfg.Dir.Tokens = "."
+	resultfldr, _ := ioutil.TempDir("", "results")
+	tempfldr, _ := ioutil.TempDir("", "temp")
+	tokenfldr, _ := ioutil.TempDir("", "token")
+	srvcfg.GINAddresses.WebURL = weburl
+	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Result = resultfldr
+	srvcfg.Dir.Temp = tempfldr
+	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token
 	saveToken(tok)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
 	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -198,14 +207,19 @@ func TestValidateRepoDoesNotExists(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
+	resultfldr, _ := ioutil.TempDir("", "results")
+	tempfldr, _ := ioutil.TempDir("", "temp")
+	tokenfldr, _ := ioutil.TempDir("", "token")
 	srvcfg := config.Read()
-	srvcfg.Dir.Tokens = "."
+	srvcfg.Dir.Result = resultfldr
+	srvcfg.Dir.Temp = tempfldr
+	srvcfg.Dir.Tokens = tokenfldr
 	config.Set(srvcfg)
 	var tok gweb.UserToken
 	tok.Username = username
 	tok.Token = token2
 	saveToken(tok)
-	os.Mkdir(filepath.Join(srvcfg.Dir.Tokens, "by-repo"), 0755)
+	os.Mkdir(filepath.Join(tokenfldr, "by-repo"), 0755)
 	linkToRepo(username, filepath.Join(username, "/", reponame))
 	r, _ := http.NewRequest("POST", filepath.Join("/validate/bids/", username, "/", reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
