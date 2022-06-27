@@ -72,7 +72,7 @@ var defaultCfg = ServerCfg{
 	},
 	Executables{
 		BIDS: "bids-validator",
-		NIX:  "nixio-validate",
+		NIX:  "nixio",
 		ODML: "odml-validate",
 	},
 	Directories{
