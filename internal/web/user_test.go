@@ -5,6 +5,7 @@ import (
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -38,27 +39,28 @@ func TestUserDoLoginFailed(t *testing.T) {
 }
 
 func TestUserDoLoginOK(t *testing.T) {
+	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Tokens = tokens
 	config.Set(srvcfg)
-	pth, _ := filepath.Abs(srvcfg.Dir.Tokens)
-	tokendir := filepath.Join(pth, "by-sessionid")
+	tokendir := filepath.Join(tokens, "by-sessionid")
 	os.MkdirAll(tokendir, 0755)
 	sessionid, err := doLogin(username, password)
-	os.RemoveAll(tokendir)
 	if sessionid == "" || err != nil {
 		t.Fatalf(`doLogin(username, password) = %q, %v`, sessionid, err)
 	}
 }
 
 func TestUserLoginPost(t *testing.T) {
+	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
 	srvcfg.GINAddresses.GitURL = giturl
+	srvcfg.Dir.Tokens = tokens
 	config.Set(srvcfg)
-	pth, _ := filepath.Abs(srvcfg.Dir.Tokens)
-	tokendir := filepath.Join(pth, "by-sessionid")
+	tokendir := filepath.Join(tokens, "by-sessionid")
 	os.MkdirAll(tokendir, 0755)
 	v := make(url.Values)
 	v.Set("username", username)
@@ -69,7 +71,6 @@ func TestUserLoginPost(t *testing.T) {
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, r)
-	os.RemoveAll(tokendir)
 	status := w.Code
 	if status != http.StatusFound {
 		t.Fatalf(`LoginPost(w http.ResponseWriter, r *http.Request) status code = %v`, status)

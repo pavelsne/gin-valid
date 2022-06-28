@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,16 +22,17 @@ func TestStatusOK(t *testing.T) {
 	router.HandleFunc("/status/{validator}/{user}/{repo}", Status).Methods("GET")
 	r, _ := http.NewRequest("GET", filepath.Join("/status/bids", username, reponame), bytes.NewReader(body))
 	w := httptest.NewRecorder()
+	resultfldr, _ := ioutil.TempDir("", "results")
 	srvcfg := config.Read()
+	srvcfg.Dir.Result = resultfldr
 	sig := hmac.New(sha256.New, []byte(srvcfg.Settings.HookSecret))
 	sig.Write(body)
 	r.Header.Add("X-Gogs-Signature", hex.EncodeToString(sig.Sum(nil)))
-	os.MkdirAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
+	os.MkdirAll(filepath.Join(resultfldr, "bids", username, reponame, srvcfg.Label.ResultsFolder), 0755)
 	f, _ := os.Create(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder, srvcfg.Label.ResultsBadge))
 	defer f.Close()
 	f.WriteString(content)
 	router.ServeHTTP(w, r)
-	os.RemoveAll(filepath.Join(srvcfg.Dir.Result, "bids", username, reponame, srvcfg.Label.ResultsFolder))
 	status := w.Code
 	if status != http.StatusOK {
 		t.Fatalf(`Status(w http.ResponseWriter, r *http.Request) status code = %v`, status)
