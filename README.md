@@ -1,5 +1,6 @@
 [![Build](https://github.com/g-node/gin-valid/workflows/run-build/badge.svg?branch=master)](https://github.com/G-Node/gin-valid/actions)
 [![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-valid.svg)](https://hub.docker.com/r/gnode/gin-valid)
+[![Coverage Status](https://coveralls.io/repos/github/G-Node/gin-valid/badge.svg?branch=master)](https://coveralls.io/github/G-Node/gin-valid?branch=master)
 
 # gin-valid
 
