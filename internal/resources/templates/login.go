@@ -12,7 +12,10 @@ var Login = `
 								Sign In using your GIN credentials
 							</h3>
 							<div class="ui attached segment">
-								<div class="required inline field ">
+								{{if .ErrorMessage}}
+									<div class="ui message red">{{.ErrorMessage}}</div>
+								{{end}}
+								<div class="required inline field">
 									<label for="username">Username or email</label>
 									<input id="username" name="username" value="" autofocus required>
 								</div>
@@ -20,6 +23,7 @@ var Login = `
 									<label for="password">Password</label>
 									<input id="password" name="password" type="password" autocomplete="off" value="" required>
 								</div>
+								
 								<div class="inline field">
 									<label></label>
 									<button class="ui green button">Sign In</button>
