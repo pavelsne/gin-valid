@@ -75,7 +75,7 @@ func TestValidateODMLNoData(t *testing.T) {
 	}
 }
 
-func TestValidateBadgeFail(t *testing.T) { //TODO
+/*func TestValidateBadgeFail(t *testing.T) { //TODO
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -109,8 +109,7 @@ func TestValidateBadgeFail(t *testing.T) { //TODO
 	if status != http.StatusOK {
 		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
 	}
-
-}
+}*/
 
 func TestValidatePubBrokenPubValidate(t *testing.T) {
 	original := templates.PubValidate
@@ -169,7 +168,7 @@ func TestValidatePub(t *testing.T) {
 	}
 }
 
-func TestValidateTMPFail(t *testing.T) {
+/*func TestValidateTMPFail(t *testing.T) {
 	body := []byte("{}")
 	router := mux.NewRouter()
 	router.HandleFunc("/validate/{validator}/{user}/{repo}", Validate).Methods("POST")
@@ -200,7 +199,7 @@ func TestValidateTMPFail(t *testing.T) {
 	if status != http.StatusOK {
 		t.Fatalf(`Validate(w http.ResponseWriter, r *http.Request) status code = %v`, status)
 	}
-}
+}*/
 
 func TestValidateRepoDoesNotExists(t *testing.T) {
 	token2 := "wtf"
