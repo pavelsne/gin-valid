@@ -24,10 +24,25 @@ const GenericResults = `
 			<div class="ui tabs divider"></div>
 		</div>
 		<div class="ui container">
+		<div class="ui grid">
+		<div class="column" style="width:20%">
+			<div id="history">History:</div>
+			{{ range $val := .Results }}
+			<div>
+				<a href="{{$val.Href}}" alt="{{$val.Alt}}">
+					{{$val.Badge}}<br>
+					<span class="tiny">{{$val.Text1}} {{$val.Text2}}</span>
+				</a>
+			</div>
+			{{ end }}
+		</div>
+		<div class="column" style="width:80%">
 			<hr>
 			<div>
-				<pre>{{.Content}}</pre>
+				<pre style="white-space: pre-wrap">{{.Content}}</pre>
 			</div>
+		</div>
+		</div>
 		</div>
 	</div>
 {{end}}
