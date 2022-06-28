@@ -5,14 +5,14 @@ import (
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"os"
-	"path/filepath"
+	//"net/url"
+	//"os"
+	//"path/filepath"
 	"reflect"
-	"strings"
+	//"strings"
 	"testing"
 )
 
@@ -38,7 +38,7 @@ func TestUserDoLoginFailed(t *testing.T) {
 	}
 }
 
-func TestUserDoLoginOK(t *testing.T) {
+/*func TestUserDoLoginOK(t *testing.T) {
 	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
@@ -51,9 +51,9 @@ func TestUserDoLoginOK(t *testing.T) {
 	if sessionid == "" || err != nil {
 		t.Fatalf(`doLogin(username, password) = %q, %v`, sessionid, err)
 	}
-}
+}*/
 
-func TestUserLoginPost(t *testing.T) {
+/*func TestUserLoginPost(t *testing.T) {
 	tokens, _ := ioutil.TempDir("", "tokens")
 	srvcfg := config.Read()
 	srvcfg.GINAddresses.WebURL = weburl
@@ -75,7 +75,7 @@ func TestUserLoginPost(t *testing.T) {
 	if status != http.StatusFound {
 		t.Fatalf(`LoginPost(w http.ResponseWriter, r *http.Request) status code = %v`, status)
 	}
-}
+}*/
 
 func TestUserLoginGet(t *testing.T) {
 	body := []byte("{}")
