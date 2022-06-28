@@ -8,6 +8,9 @@ var PubValidate = `
 				Enter the full name of a GIN repository (user/repository) below and select a validator to run:
 			</h4>
 			<div class="ui attached segment">
+			{{ if .ErrorMessage }}
+				<div class="ui message red">{{ .ErrorMessage }}</div>
+			{{ end }}
 				<div class="required inline field left">
 					<label for="repopath">Repository name</label>
 					<input id="repopath" name="repopath" value="" autofocus required>

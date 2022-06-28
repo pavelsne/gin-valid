@@ -505,6 +505,13 @@ func Root(w http.ResponseWriter, r *http.Request) {
 // to manually run a validator on a publicly accessible repository, without
 // using a web hook.
 func PubValidateGet(w http.ResponseWriter, r *http.Request) {
+	renderValidationForm(w, r, "")
+}
+
+// renderValidationForm renders the one-time validation form, which allows the user
+// to manually run a validator on a publicly accessible repository, without
+// using a web hook.
+func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string) {
 	tmpl := template.New("layout")
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
@@ -521,11 +528,13 @@ func PubValidateGet(w http.ResponseWriter, r *http.Request) {
 	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	data := struct {
-		GinURL      string
-		CurrentYear int
+		GinURL       string
+		CurrentYear  int
+		ErrorMessage string
 	}{
 		srvcfg.GINAddresses.WebURL,
 		year,
+		errMsg,
 	}
 	tmpl.Execute(w, &data)
 }
@@ -560,7 +569,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	// check if repository is accessible
 	repoinfo, err := gcl.GetRepo(repopath)
 	if err != nil {
-		fail(w, http.StatusNotFound, err.Error())
+		renderValidationForm(w, r, fmt.Sprintf("Repository '%s' does not exist.", repopath))
 		return
 	}
 	if repoinfo.Private {
