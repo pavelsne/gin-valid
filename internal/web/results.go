@@ -190,6 +190,7 @@ func notValidatedYet(w http.ResponseWriter, r *http.Request, badge []byte, valid
 
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("%s validation for %s/%s", validator, user, repo)
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	year, _, _ := time.Now().Date()
 	info := struct {
@@ -204,9 +205,11 @@ func notValidatedYet(w http.ResponseWriter, r *http.Request, badge []byte, valid
 		HrefURL2    string
 		HrefAlt2    string
 		HrefText2   string
+		UserName    string
 	}{template.HTML(badge), head, string(notvalidatedyet), srvcfg.GINAddresses.WebURL, year,
 		"/pubvalidate", "Validate now", "Validate this repository right now",
 		filepath.Join("/repos", user, repo, "hooks"), "Go Back", "Go back to repository information page",
+		loggedUsername,
 	}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
@@ -236,6 +239,7 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 	head := fmt.Sprintf("%s validation for %s/%s", strings.ToUpper(validator), user, repo)
 	srvcfg := config.Read()
 	resHistory := resultsHistory(validator, user, repo)
+	loggedUsername := getLoggedUserName(r)
 	year, _, _ := time.Now().Date()
 	info := struct {
 		Badge       template.HTML
@@ -243,8 +247,9 @@ func renderInProgress(w http.ResponseWriter, r *http.Request, badge []byte, vali
 		Content     string
 		GinURL      string
 		CurrentYear int
+		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year, &resHistory}
+	}{template.HTML(badge), head, string(progressmsg), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -327,14 +332,16 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	year, _, _ := time.Now().Date()
 	srvcfg := config.Read()
 	resHistory := resultsHistory("bids", user, repo)
+	loggedUsername := getLoggedUserName(r)
 	info := struct {
 		Badge  template.HTML
 		Header string
 		*BidsResultStruct
 		GinURL      string
 		CurrentYear int
+		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year, &resHistory}
+	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -365,6 +372,7 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 	head := fmt.Sprintf("NIX validation for %s/%s", user, repo)
 	resHistory := resultsHistory("nix", user, repo)
 	year, _, _ := time.Now().Date()
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	info := struct {
 		Badge       template.HTML
@@ -372,8 +380,9 @@ func renderNIXResults(w http.ResponseWriter, r *http.Request, badge []byte, cont
 		Content     string
 		GinURL      string
 		CurrentYear int
+		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, &resHistory}
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
@@ -403,6 +412,7 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	// Parse results into html template and serve it
 	head := fmt.Sprintf("odML validation for %s/%s", user, repo)
 	resHistory := resultsHistory("odml", user, repo)
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	year, _, _ := time.Now().Date()
 	info := struct {
@@ -411,8 +421,9 @@ func renderODMLResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 		Content     string
 		GinURL      string
 		CurrentYear int
+		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, &resHistory}
+	}{template.HTML(badge), head, string(content), srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {

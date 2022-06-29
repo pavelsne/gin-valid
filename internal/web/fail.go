@@ -12,7 +12,7 @@ import (
 
 // fail logs an error and renders an error page with the given message,
 // returning the given status code to the user.
-func fail(w http.ResponseWriter, status int, message string) {
+func fail(w http.ResponseWriter, r *http.Request, status int, message string) {
 	log.Write("[error] %s", message)
 	w.WriteHeader(status)
 
@@ -29,6 +29,10 @@ func fail(w http.ResponseWriter, status int, message string) {
 		return
 	}
 	year, _, _ := time.Now().Date()
+	loggedUsername := ""
+	if r != nil {
+		loggedUsername = getLoggedUserName(r)
+	}
 	srvcfg := config.Read()
 	errinfo := struct {
 		StatusCode  int
@@ -36,12 +40,14 @@ func fail(w http.ResponseWriter, status int, message string) {
 		Message     string
 		GinURL      string
 		CurrentYear int
+		UserName    string
 	}{
 		status,
 		http.StatusText(status),
 		message,
 		srvcfg.GINAddresses.WebURL,
 		year,
+		loggedUsername,
 	}
 	tmpl.Execute(w, &errinfo)
 }

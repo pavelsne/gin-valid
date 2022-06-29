@@ -2,15 +2,16 @@ package web
 
 import (
 	"bytes"
+	gweb "github.com/G-Node/gin-cli/web"
 	"github.com/G-Node/gin-valid/internal/config"
 	"github.com/G-Node/gin-valid/internal/resources/templates"
 	"github.com/gorilla/mux"
-	//"io/ioutil"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	//"net/url"
-	//"os"
-	//"path/filepath"
+	"os"
+	"path/filepath"
 	"reflect"
 	//"strings"
 	"testing"
@@ -35,6 +36,60 @@ func TestUserDoLoginFailed(t *testing.T) {
 	sessionid, err := doLogin("wtf", "wtf")
 	if sessionid != "" || err == nil {
 		t.Fatalf(`doLogin(username, password) = %q, %v`, sessionid, err)
+	}
+}
+
+func TestGetLoggedUserNameEmpty(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/login", nil)
+	q := getLoggedUserName(r)
+	if q != "" {
+		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
+	}
+}
+
+func TestGetLoggedUserNameSessionDoesNotExists(t *testing.T) {
+	srvcfg := config.Read()
+	w := httptest.NewRecorder()
+	http.SetCookie(w, &http.Cookie{
+		Name:    srvcfg.Settings.CookieName,
+		Value:   "wtfsession",
+		Expires: cookieExp(),
+	})
+	r := &http.Request{Header: http.Header{"Cookie": w.HeaderMap["Set-Cookie"]}}
+	q := getLoggedUserName(r)
+	if q != "" {
+		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
+	}
+}
+
+func TestGetLoggedUserNameOK(t *testing.T) {
+	srvcfg := config.Read()
+	tokens, _ := ioutil.TempDir("", "tokens")
+	srvcfg.Dir.Tokens = tokens
+	config.Set(srvcfg)
+	os.MkdirAll(filepath.Join(tokens, "by-sessionid"), 0755)
+	w := httptest.NewRecorder()
+	http.SetCookie(w, &http.Cookie{
+		Name:    srvcfg.Settings.CookieName,
+		Value:   "wtfsession",
+		Expires: cookieExp(),
+	})
+	r := &http.Request{Header: http.Header{"Cookie": w.HeaderMap["Set-Cookie"]}}
+	ut := gweb.UserToken{
+		Username: "wtf_user",
+		Token:    "wtf_token",
+	}
+	err := saveToken(ut)
+	if err != nil {
+		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", err)
+	}
+	err = linkToSession("wtf_user", "wtfsession")
+	if err != nil {
+		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", err)
+	}
+	q := getLoggedUserName(r)
+	if q != "wtf_user" {
+		t.Fatalf("getLoggedUserName(r *http.Request) = \"%v\"", q)
 	}
 }
 
