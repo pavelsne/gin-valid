@@ -182,6 +182,12 @@ func validateNIX(valroot, resdir string) error {
 			log.ShowWrite("[Error] NIXFinder directory walk caused error at %q: %s", path, err.Error())
 			return nil
 		}
+
+		// Skip git directory
+		if info.Name() == ".git" {
+			return filepath.SkipDir
+		}
+
 		if info.IsDir() {
 			// nothing to do; continue
 			return nil
@@ -265,6 +271,11 @@ func validateODML(valroot, resdir string) error {
 		if info.IsDir() {
 			// nothing to do; continue
 			return nil
+		}
+
+		// Skip git directory
+		if info.Name() == ".git" {
+			return filepath.SkipDir
 		}
 
 		extension := strings.ToLower(filepath.Ext(path))
@@ -411,10 +422,11 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 
 		glog.Init()
 		clonechan := make(chan git.RepoFileStatus)
+		pth, _ := os.Getwd()
 		os.Chdir(tmpdir)
 		go gcl.CloneRepo(repopath, clonechan)
 		for stat := range clonechan {
-			if stat.Err != nil {
+			if stat.Err != nil && stat.Err.Error() != "Error initialising local directory" {
 				log.ShowWrite("[Error] Failed to fetch repository data for %q: %s", repopath, stat.Err.Error())
 				writeValFailure(resdir)
 				return
@@ -446,6 +458,7 @@ func runValidatorBoth(validator, repopath, commit, commitname string, gcl *gincl
 			log.ShowWrite("[Info] %s %s %s", stat.State, stat.FileName, stat.Progress)
 		}
 		log.ShowWrite("[Info] get-content complete")
+		os.Chdir(pth)
 
 		switch validator {
 		case "bids":
