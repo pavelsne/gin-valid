@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet  type="text/xsl" href="odmlDocument.xsl"?>
+<odML version="1.1">
+  <id>4bb236c6-20f4-4ed5-9bc9-93be88ce3257</id>
+  <section>
+    <id>2a05c9fb-a667-4931-b3d2-7cf0adfe4d52</id>
+    <type>n.s.</type>
+    <name>sec</name>
+    <property>
+      <id>b97b08e8-4a8f-47b6-8799-dfac3b3e4b20</id>
+      <name>prop</name>
+      <value></value>
+    </property>
+  </section>
+</odML>

@@ -59,6 +59,9 @@ RUN pip3 install odml
 # Copy odML validation script
 COPY ./scripts/odml-validate /bin
 
+# Copy test data
+COPY ./resources /resources
+
 # Install NIXPy for NIX validation
 # Use master branch until new beta is released
 RUN pip3 install --no-cache-dir -U git+https://github.com/G-Node/nixpy@master
@@ -80,6 +83,12 @@ ENV GIN_CONFIG_DIR /gin-valid/config/client
 # Copy binary and resources into runner image
 COPY --from=binbuilder /gin-valid/ginvalid /
 COPY ./assets /assets
+
+# Test validation
+RUN odml-validate /resources/odmldata.odml
+RUN nixio -h
+RUN nixio validate /resources/nixdata.nix
+RUN bids-validator --version
 
 ENTRYPOINT /ginvalid --config=/gin-valid/config/cfg.json
 EXPOSE 3033
