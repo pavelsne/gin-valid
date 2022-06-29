@@ -306,10 +306,10 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 	// Parse results file
 	var resBIDS BidsResultStruct
 	err := json.Unmarshal(content, &resBIDS)
+	errMsg := ""
 	if err != nil {
 		log.ShowWrite("[Error] unmarshalling '%s/%s' result: %s\n", user, repo, err.Error())
-		http.ServeContent(w, r, "unavailable", time.Now(), bytes.NewReader([]byte("500 Something went wrong...")))
-		return
+		errMsg = "Could not validate format as BIDS."
 	}
 
 	// Parse html template
@@ -341,7 +341,8 @@ func renderBIDSResults(w http.ResponseWriter, r *http.Request, badge []byte, con
 		CurrentYear int
 		UserName    string
 		*ResultsHistoryStruct
-	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory}
+		ErrorMessage string
+	}{template.HTML(badge), head, &resBIDS, srvcfg.GINAddresses.WebURL, year, loggedUsername, &resHistory, errMsg}
 
 	err = tmpl.ExecuteTemplate(w, "layout", info)
 	if err != nil {
