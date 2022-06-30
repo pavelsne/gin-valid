@@ -67,6 +67,12 @@ const BidsResults = `
 	</div>
 	{{ end }}
 
+{{ if .ErrorMessage }}
+	<div class="ui message red">
+		{{ .ErrorMessage }}
+	</div>
+{{ end }}
+
 {{ if .Summary }}
 	<div>Summary</div>
 	<div>Sessions: {{ .Summary.Sessions }}</div>
