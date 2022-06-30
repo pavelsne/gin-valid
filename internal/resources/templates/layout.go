@@ -35,7 +35,11 @@ var Layout = `
 								<a class="item" href="{{.GinURL}}">Back to GIN</a>
 								<a class="item" href="/repos">Repositories</a>
 								<a class="item" href="/pubvalidate">One-time validation</a>
-								<a class="item" href="/login">Login</a>
+								{{ if eq .UserName ""}}
+									<a class="item" href="/login">Login</a>
+								{{ else }}
+									<a class="item" href="/logout">{{.UserName}} (logout)</a>
+								{{ end }}
 							</div>
 						</div>
 					</div>

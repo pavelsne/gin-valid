@@ -163,25 +163,28 @@ func loginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.Login)
 	if err != nil {
 		log.Write("[Error] failed to render login page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	year, _, _ := time.Now().Date()
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	data := struct {
 		GinURL       string
 		CurrentYear  int
 		ErrorMessage string
+		UserName     string
 	}{
 		srvcfg.GINAddresses.WebURL,
 		year,
 		errMsg,
+		loggedUsername,
 	}
 	tmpl.Execute(w, &data)
 }
@@ -214,6 +217,32 @@ func LoginPost(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 	// Redirect to repo listing
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s", username), http.StatusFound)
+}
+
+// Logout logouts the current user
+func Logout(w http.ResponseWriter, r *http.Request) {
+	cfg := config.Read()
+	cookie := http.Cookie{
+		Name:    cfg.Settings.CookieName,
+		Value:   "",
+		Expires: time.Time{},
+		Secure:  false, // TODO: Switch when we go live
+	}
+	http.SetCookie(w, &cookie)
+	http.Redirect(w, r, "/login", http.StatusFound)
+}
+
+func getLoggedUserName(r *http.Request) string {
+	cfg := config.Read()
+	cookie, err := r.Cookie(cfg.Settings.CookieName)
+	if err != nil {
+		return ""
+	}
+	usertoken, err := getTokenBySession(cookie.Value)
+	if err != nil {
+		return ""
+	}
+	return usertoken.Username
 }
 
 func getSessionOrRedirect(w http.ResponseWriter, r *http.Request) (gweb.UserToken, error) {
@@ -271,13 +300,13 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoList)
 	if err != nil {
 		log.Write("[Error] failed to render repository list page: %s", err.Error())
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	reposActive := make([]repoHooksInfo, 0, len(userrepos))
@@ -308,17 +337,20 @@ func ListRepos(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	year, _, _ := time.Now().Date()
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	allrepos := struct {
 		Active      []repoHooksInfo
 		Inactive    []repoHooksInfo
 		GinURL      string
 		CurrentYear int
+		UserName    string
 	}{
 		reposActive,
 		reposInactive,
 		srvcfg.GINAddresses.WebURL,
 		year,
+		loggedUsername,
 	}
 	tmpl.Execute(w, &allrepos)
 }
@@ -454,13 +486,13 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 	tmpl, err = tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.Write("[Error] failed to parse html layout page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.RepoPage)
 	if err != nil {
 		log.Write("[Error] failed to render repository page: %s", err.Error())
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 
@@ -469,17 +501,20 @@ func ShowRepo(w http.ResponseWriter, r *http.Request) {
 		hooks = make(map[string]ginhook)
 	}
 	year, _, _ := time.Now().Date()
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	repohi := struct {
 		gogs.Repository
 		Hooks       map[string]ginhook
 		GinURL      string
 		CurrentYear int
+		UserName    string
 	}{
 		repoinfo,
 		hooks,
 		srvcfg.GINAddresses.WebURL,
 		year,
+		loggedUsername,
 	}
 	tmpl.Execute(w, &repohi)
 }

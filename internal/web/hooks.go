@@ -32,14 +32,14 @@ func EnableHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !helpers.SupportedValidator(validator) {
-		fail(w, http.StatusNotFound, "unsupported validator")
+		fail(w, r, http.StatusNotFound, "unsupported validator")
 		return
 	}
 	repopath := fmt.Sprintf("%s/%s", user, repo)
 	err = createValidHook(repopath, validator, ut)
 	if err != nil {
 		// TODO: Check if failure is for other reasons and maybe return 500 instead
-		fail(w, http.StatusUnauthorized, err.Error())
+		fail(w, r, http.StatusUnauthorized, err.Error())
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s/hooks", repopath), http.StatusFound)
@@ -55,7 +55,7 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 	hookid, err := strconv.Atoi(hookidstr)
 	if err != nil {
 		// bad hook ID (not a number): throw a generic 404
-		fail(w, http.StatusNotFound, "not found")
+		fail(w, r, http.StatusNotFound, "not found")
 		return
 	}
 
@@ -69,7 +69,7 @@ func DisableHook(w http.ResponseWriter, r *http.Request) {
 	err = deleteValidHook(repopath, hookid, ut)
 	if err != nil {
 		// TODO: Check if failure is for other reasons and maybe return 500 instead
-		fail(w, http.StatusUnauthorized, err.Error())
+		fail(w, r, http.StatusUnauthorized, err.Error())
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/repos/%s/hooks", repopath), http.StatusFound)

@@ -529,25 +529,28 @@ func renderValidationForm(w http.ResponseWriter, r *http.Request, errMsg string)
 	tmpl, err := tmpl.Parse(templates.Layout)
 	if err != nil {
 		log.ShowWrite("[Error] failed to parse html layout page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	tmpl, err = tmpl.Parse(templates.PubValidate)
 	if err != nil {
 		log.ShowWrite("[Error] failed to render root page")
-		fail(w, http.StatusInternalServerError, "something went wrong")
+		fail(w, r, http.StatusInternalServerError, "something went wrong")
 		return
 	}
 	year, _, _ := time.Now().Date()
+	loggedUsername := getLoggedUserName(r)
 	srvcfg := config.Read()
 	data := struct {
 		GinURL       string
 		CurrentYear  int
 		ErrorMessage string
+		UserName     string
 	}{
 		srvcfg.GINAddresses.WebURL,
 		year,
 		errMsg,
+		loggedUsername,
 	}
 	tmpl.Execute(w, &data)
 }
@@ -563,7 +566,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	validators := r.Form["validator"]
 	if len(validators) < 1 {
 		log.ShowWrite("[error] no validator selected")
-		fail(w, http.StatusBadRequest, "No validator has been selected")
+		fail(w, r, http.StatusBadRequest, "No validator has been selected")
 		return
 	}
 	validator := r.Form["validator"][0]
@@ -575,7 +578,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.ShowWrite("[error] failed to login as %s", ginuser)
 		msg := fmt.Sprintf("failed to validate '%s': %s", repopath, err.Error())
-		fail(w, http.StatusUnauthorized, msg)
+		fail(w, r, http.StatusUnauthorized, msg)
 		return
 	}
 
@@ -590,7 +593,7 @@ func PubValidatePost(w http.ResponseWriter, r *http.Request) {
 		// marked private. This can happen if an owner of the private
 		// repository adds the user as a collaborator to the repository. We
 		// don't allow this.
-		fail(w, http.StatusNotFound, fmt.Sprintf("repository '%s' does not exist", repopath))
+		fail(w, r, http.StatusNotFound, fmt.Sprintf("repository '%s' does not exist", repopath))
 		return
 	}
 
@@ -611,7 +614,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.ShowWrite("[Error] failed to parse hook payload")
-		fail(w, http.StatusBadRequest, "bad request")
+		fail(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 	err = json.Unmarshal(b, &hookdata)
@@ -623,7 +626,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	}
 	if !checkHookSecret(b, secret) {
 		log.ShowWrite("[Error] authorisation failed: bad secret")
-		fail(w, http.StatusBadRequest, "bad request")
+		fail(w, r, http.StatusBadRequest, "bad request")
 		return
 	}
 
@@ -636,7 +639,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	validator := vars["validator"]
 	if !helpers.SupportedValidator(validator) {
 		log.ShowWrite("[Error] unsupported validator (%v)", validator)
-		fail(w, http.StatusNotFound, "unsupported validator")
+		fail(w, r, http.StatusNotFound, "unsupported validator")
 		return
 	}
 	user := vars["user"]
@@ -660,7 +663,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 		// We don't have a valid token for this repository: can't clone
 		log.ShowWrite("[Error] Bad Token: %v", err)
 		msg := fmt.Sprintf("accessing '%s': no access token found", repopath)
-		fail(w, http.StatusUnauthorized, msg)
+		fail(w, r, http.StatusUnauthorized, msg)
 		return
 	}
 	log.ShowWrite("[Info] Using user %s", ut.Username)
@@ -670,7 +673,7 @@ func Validate(w http.ResponseWriter, r *http.Request) {
 	// check if repository exists and is accessible
 	_, err = gcl.GetRepo(repopath)
 	if err != nil {
-		fail(w, http.StatusNotFound, err.Error())
+		fail(w, r, http.StatusNotFound, err.Error())
 		return
 	}
 

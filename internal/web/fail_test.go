@@ -11,7 +11,7 @@ func TestFailFailedToParse(t *testing.T) {
 	w := httptest.NewRecorder()
 	original := templates.Layout
 	templates.Layout = "{{ WTF? }"
-	fail(w, 200, "WTF")
+	fail(w, nil, 200, "WTF")
 	templates.Layout = original
 	status := w.Code
 	if status != http.StatusOK {
@@ -23,7 +23,7 @@ func TestFailFailedToParseFailPage(t *testing.T) {
 	w := httptest.NewRecorder()
 	original := templates.Fail
 	templates.Fail = "{{ WTF? }"
-	fail(w, 200, "WTF")
+	fail(w, nil, 200, "WTF")
 	templates.Fail = original
 	status := w.Code
 	if status != http.StatusOK {
